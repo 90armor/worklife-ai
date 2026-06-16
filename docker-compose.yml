@@ -32,8 +32,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/var/www/html
-    command: php artisan serve --host=0.0.0.0 --port=8000
+      - ./backend/app:/var/www/html/app
+      - ./backend/routes:/var/www/html/routes
+      - ./backend/config:/var/www/html/config
+      - ./backend/database:/var/www/html/database
+      - ./backend/public:/var/www/html/public
+      - ./backend/bootstrap/cache:/var/www/html/bootstrap/cache
+      - ./backend/.env:/var/www/html/.env
+    command: php -S 0.0.0.0:8000 -t public
 
   frontend:
     build:
