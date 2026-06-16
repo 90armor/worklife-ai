@@ -73,7 +73,22 @@ Working in Japan under:
 
 # MVP Scope
 
-## Feature 1: AI Document Explainer
+## Feature 1: User Authentication
+
+* Register with email and password
+* Login and logout
+* JWT-based session management
+
+---
+
+## Feature 2: User Profile
+
+* Full Name, Nationality, Preferred Language, Occupation, Prefecture
+* Used for AI personalization
+
+---
+
+## Feature 3: AI Document Explainer
 
 Users upload:
 
@@ -91,7 +106,7 @@ AI returns:
 
 ---
 
-## Feature 2: Procedure Navigator
+## Feature 4: Procedure Navigator
 
 Users ask:
 
@@ -103,7 +118,7 @@ AI provides step-by-step guidance.
 
 ---
 
-## Feature 3: Workplace Guide
+## Feature 5: Workplace Guide
 
 Explains:
 
@@ -111,6 +126,28 @@ Explains:
 * Japanese business culture
 * Safety instructions
 * Common company policies
+
+---
+
+## Feature 6: AI Chat
+
+* General worker assistance
+* Context retained within session
+* RAG-enabled responses
+
+---
+
+## Feature 7: Guide Bookmarking
+
+* Save and remove useful guides
+* View saved guides list
+
+---
+
+## Feature 8: Feedback Collection
+
+* 1–5 rating on AI responses
+* Optional comment
 
 ---
 
