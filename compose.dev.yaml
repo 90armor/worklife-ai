@@ -4,8 +4,8 @@ services:
     container_name: app_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-worklifeai}
-      POSTGRES_USER: ${DB_USERNAME:-90armor}
+      POSTGRES_DB: ${DB_DATABASE:-app}
+      POSTGRES_USER: ${DB_USERNAME:-app}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
       - "5432:5432"
@@ -13,38 +13,53 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-90armor} -d ${DB_DATABASE:-worklifeai}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-app}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  backend:
+  php-fpm:
     build:
       context: ./backend
-      dockerfile: ../docker/backend.Dockerfile
-    container_name: app_backend
+      dockerfile: ../docker/common/php-fpm/Dockerfile
+    container_name: app_php_fpm
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     env_file:
       - ./backend/.env
-    ports:
-      - "8000:8000"
     volumes:
-      - ./backend/app:/var/www/html/app
-      - ./backend/routes:/var/www/html/routes
-      - ./backend/config:/var/www/html/config
-      - ./backend/database:/var/www/html/database
+      - ./backend:/var/www/html
+      - /var/www/html/vendor
+    entrypoint: /var/www/html/docker/development/php-fpm/entrypoint.sh
+
+  nginx:
+    build:
+      context: ./docker/development/nginx
+    container_name: app_nginx
+    restart: unless-stopped
+    depends_on:
+      - php-fpm
+    ports:
+      - "8000:80"
+    volumes:
       - ./backend/public:/var/www/html/public
-      - ./backend/bootstrap/cache:/var/www/html/bootstrap/cache
-      - ./backend/.env:/var/www/html/.env
-    command: php -S 0.0.0.0:8000 -t public
-    # Useful one-off commands (run with: docker exec app_backend <cmd>):
-    #   docker exec app_backend php artisan migrate --seed
-    #   docker exec app_backend php artisan migrate
-    #   docker exec app_backend php artisan db:seed
-    #   docker exec app_backend php artisan migrate --seed --force
+
+  workspace:
+    build:
+      context: ./backend
+      dockerfile: ../docker/development/workspace/Dockerfile
+    container_name: app_workspace
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/vendor
+    tty: true
 
   frontend:
     build:
@@ -53,7 +68,7 @@ services:
     container_name: app_frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      - nginx
     env_file:
       - ./frontend/.env.local
     ports:

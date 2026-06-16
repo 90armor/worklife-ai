@@ -1,0 +1,56 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: app_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  php-fpm:
+    build:
+      context: ./backend
+      dockerfile: ../docker/common/php-fpm/Dockerfile
+    container_name: app_php_fpm
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+
+  nginx:
+    build:
+      context: ./docker/development/nginx
+    container_name: app_nginx
+    restart: always
+    depends_on:
+      - php-fpm
+    ports:
+      - "80:80"
+    volumes:
+      - ./backend/public:/var/www/html/public
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: app_frontend
+    restart: always
+    depends_on:
+      - nginx
+    env_file:
+      - ./frontend/.env.local
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
