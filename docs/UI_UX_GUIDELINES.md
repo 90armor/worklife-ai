@@ -154,6 +154,52 @@ Avoid condensed faces and low-x-height fonts. Vietnamese stacks diacritics above
 
 ## Components
 
+### Sidebar
+
+A collapsible navigation panel for the chat interface. Implemented in `frontend/src/components/Sidebar.tsx`.
+
+**Layout**
+
+| State | Width | Breakpoint |
+|-------|-------|-----------|
+| Expanded | 260px | md+ (desktop) |
+| Collapsed (icon rail) | 60px | md+ (desktop) |
+| Mobile overlay | 260px, slides in from left | below md |
+
+The sidebar is `position: fixed`, full viewport height. Main content shifts right with `margin-left` equal to the sidebar width; both values animate together via `transition-[width,transform]` and `transition-[margin]` at `300ms ease-in-out`.
+
+**Sections**
+
+1. **Header** — Logo mark (32×32px, Blue 600, rounded-md) + brand name + desktop toggle chevron + mobile close chevron.
+2. **New Chat button** — Full-width primary button (Blue 600) when expanded; square icon-only (`w-9 h-9`) when collapsed. Links to `/chat`.
+3. **Search** — Hidden (opacity-0, max-height 0) in collapsed state. Filters the conversation list client-side.
+4. **Conversation list** — Scrollable, grouped into "Today", "Yesterday", and "Previous 7 days" labels (11px, uppercase, tracked). Each item is a full-width link with truncated title. Active item gets `bg-primary-50` fill and `text-primary-800`. In collapsed state the list is replaced by two icon buttons (chat bubble + search) that expand the sidebar on click.
+5. **User profile** — Avatar (32px circle, Blue 50 background, initials in Blue 600) + name + caption. Clicking opens a dropdown with Settings (links to `/profile`) and Sign out. In collapsed state the name is hidden; the dropdown anchors from the avatar.
+
+**Context API** — `SidebarProvider` wraps the chat layout. Any child component can call `useSidebar()` to read `isCollapsed`, `isMobileOpen`, or call `toggleCollapsed`, `openMobile`, `closeMobile`.
+
+**Mobile** — A `SidebarMobileToggle` button (hamburger icon) is rendered in the mobile top bar inside the chat layout header. Tapping opens the sidebar overlay; a dark backdrop (`bg-black/40`, `backdrop-blur-[2px]`) closes it on click.
+
+**Usage**
+
+```tsx
+// Chat layout wraps the page with sidebar context
+import { Sidebar, SidebarProvider, SidebarMobileToggle, useSidebar } from "@/components/Sidebar";
+
+// Access state anywhere inside SidebarProvider
+const { isCollapsed, toggleCollapsed } = useSidebar();
+```
+
+**Accessibility**
+- `<aside aria-label="Chat navigation">` wraps the panel.
+- `<nav aria-label="Recent conversations">` wraps the conversation list.
+- All interactive elements have visible focus rings (`ring-2 ring-primary-400`).
+- Backdrop has `aria-hidden="true"`.
+- User menu button has `aria-haspopup` and `aria-expanded`.
+- `prefers-reduced-motion` handled globally via the existing CSS rule in `globals.css`.
+
+---
+
 ### Buttons
 
 **Primary** — main action on a screen (one per screen maximum).

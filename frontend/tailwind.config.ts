@@ -36,6 +36,11 @@ const config: Config = {
         body: "var(--color-body)",
         heading: "var(--color-heading)",
       },
+      spacing: {
+        // Sidebar dimension tokens — used for both w-* and ml-* utilities
+        sidebar: "260px",
+        "sidebar-rail": "60px",
+      },
       borderRadius: { md: "8px", lg: "12px", pill: "999px" },
       fontFamily: {
         sans: ["Inter", "Noto Sans", "system-ui", "sans-serif"],

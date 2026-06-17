@@ -28,9 +28,15 @@ export interface ProfileInput {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // Destructure so we can merge headers instead of letting ...options replace them wholesale
+  const { headers: extraHeaders, ...restOptions } = options;
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    ...options,
+    ...restOptions,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(extraHeaders as Record<string, string>),
+    },
   });
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${await res.text()}`);

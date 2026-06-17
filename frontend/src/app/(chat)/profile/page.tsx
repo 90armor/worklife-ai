@@ -93,7 +93,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <main className="min-h-[calc(100vh-3.5rem)] bg-surface p-4 md:p-8">
+    <main className="min-h-full bg-surface p-4 md:p-8">
       <div className="max-w-lg mx-auto animate-slideUp">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-h1">Your profile</h1>
