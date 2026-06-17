@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
   title: "WorkLife AI",
@@ -9,34 +10,22 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-surface text-body">
-        <header className="bg-white border-b border-neutral-border">
-          <nav className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link
-              href="/"
-              className="font-medium text-heading text-base"
-            >
-              WorkLife AI
-            </Link>
-            <div className="flex items-center gap-6 text-sm">
-              <Link href="/login" className="text-primary-600 hover:underline">
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:opacity-90"
-              >
-                Register
-              </Link>
-            </div>
-          </nav>
-        </header>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-surface text-body transition-colors duration-200">
+        <ThemeProvider>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-md focus:shadow-lg"
+          >
+            Skip to content
+          </a>
+          <Nav />
+          <div id="main">{children}</div>
+        </ThemeProvider>
       </body>
     </html>
   );

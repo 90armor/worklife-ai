@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, Profile, ProfileInput } from "@/lib/api";
 import { auth } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { FormInput } from "@/components/ui/FormInput";
+import { Alert } from "@/components/ui/Alert";
+import { Card } from "@/components/ui/Card";
 
 type FormState = Omit<ProfileInput, never>;
 
@@ -14,6 +18,15 @@ const emptyForm: FormState = {
   occupation: "",
   prefecture: "",
 };
+
+function SkeletonField() {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="h-4 w-24 bg-neutral-border rounded animate-pulse" />
+      <div className="h-11 w-full bg-neutral-border rounded-md animate-pulse" />
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -71,94 +84,70 @@ export default function ProfilePage() {
     router.push("/login");
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-[calc(100vh-3.5rem)] bg-surface flex items-center justify-center">
-        <p className="text-muted text-sm">Loading…</p>
-      </main>
-    );
-  }
-
-  const fields: { key: keyof FormState; label: string; autoComplete: string }[] =
-    [
-      { key: "fullName", label: "Full name", autoComplete: "name" },
-      { key: "nationality", label: "Nationality", autoComplete: "off" },
-      {
-        key: "preferredLanguage",
-        label: "Preferred language",
-        autoComplete: "language",
-      },
-      { key: "occupation", label: "Occupation", autoComplete: "organization-title" },
-      { key: "prefecture", label: "Prefecture", autoComplete: "address-level1" },
-    ];
+  const fields: { key: keyof FormState; label: string; autoComplete: string }[] = [
+    { key: "fullName", label: "Full name", autoComplete: "name" },
+    { key: "nationality", label: "Nationality", autoComplete: "off" },
+    { key: "preferredLanguage", label: "Preferred language", autoComplete: "language" },
+    { key: "occupation", label: "Occupation", autoComplete: "organization-title" },
+    { key: "prefecture", label: "Prefecture", autoComplete: "address-level1" },
+  ];
 
   return (
     <main className="min-h-[calc(100vh-3.5rem)] bg-surface p-4 md:p-8">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto animate-slideUp">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-medium text-heading">Your profile</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 border border-neutral-border rounded-md text-body text-sm hover:bg-surface transition-colors"
-          >
+          <h1 className="text-h1">Your profile</h1>
+          <Button variant="secondary" size="sm" onClick={handleLogout}>
             Sign out
-          </button>
+          </Button>
         </div>
 
-        <div className="bg-white border border-neutral-border rounded-lg p-6">
-          {error && (
-            <div
-              role="alert"
-              className="mb-4 p-3 bg-error-50 border-l-4 border-error-400 text-error-900 text-sm rounded-md"
-            >
-              {error}
+        <Card padding="md">
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {fields.map((f) => <SkeletonField key={f.key} />)}
+              <div className="h-11 w-full bg-neutral-border rounded-md animate-pulse mt-2" />
             </div>
-          )}
+          ) : (
+            <>
+              {error && (
+                <Alert variant="error" className="mb-4">
+                  {error}
+                </Alert>
+              )}
+              {success && (
+                <Alert variant="success" className="mb-4">
+                  Profile saved successfully.
+                </Alert>
+              )}
 
-          {success && (
-            <div
-              role="status"
-              className="mb-4 p-3 bg-success-50 border-l-4 border-success-600 text-success-900 text-sm rounded-md"
-            >
-              Profile saved successfully.
-            </div>
-          )}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {fields.map(({ key, label, autoComplete }) => (
+                  <FormInput
+                    key={key}
+                    id={key}
+                    label={label}
+                    type="text"
+                    required={key === "fullName"}
+                    autoComplete={autoComplete}
+                    value={form[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                  />
+                ))}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {fields.map(({ key, label, autoComplete }) => (
-              <div key={key}>
-                <label
-                  htmlFor={key}
-                  className="block text-sm text-body mb-1"
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={saving}
+                  fullWidth
+                  className="mt-2"
                 >
-                  {label}
-                  {key === "fullName" && (
-                    <span className="text-error-600 ml-1" aria-hidden="true">
-                      *
-                    </span>
-                  )}
-                </label>
-                <input
-                  id={key}
-                  type="text"
-                  required={key === "fullName"}
-                  autoComplete={autoComplete}
-                  value={form[key]}
-                  onChange={(e) => set(key, e.target.value)}
-                  className="w-full h-11 px-3 border border-neutral-border rounded-md text-body bg-white focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-600"
-                />
-              </div>
-            ))}
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full h-11 bg-primary-600 text-white font-medium rounded-md hover:opacity-90 disabled:opacity-60 transition-opacity mt-2"
-            >
-              {saving ? "Saving…" : "Save profile"}
-            </button>
-          </form>
-        </div>
+                  {saving ? "Saving…" : "Save profile"}
+                </Button>
+              </form>
+            </>
+          )}
+        </Card>
       </div>
     </main>
   );

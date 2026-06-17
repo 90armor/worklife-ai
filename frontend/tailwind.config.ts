@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -27,16 +28,32 @@ const config: Config = {
         warning: { 50: "#FAEEDA", 600: "#BA7517", 900: "#412402" },
         error: { 50: "#FCEBEB", 400: "#E24B4A", 600: "#A32D2D", 900: "#501313" },
         info: { 50: "#E6F1FB", 600: "#378ADD", 900: "#042C53" },
-        surface: "#F1EFE8",
-        "neutral-border": "#D3D1C7",
-        muted: "#888780",
-        body: "#444441",
-        heading: "#2C2C2A",
+        // Semantic tokens backed by CSS variables — swap automatically in dark mode
+        surface: "var(--color-surface)",
+        card: "var(--color-card)",
+        "neutral-border": "var(--color-border)",
+        muted: "var(--color-muted)",
+        body: "var(--color-body)",
+        heading: "var(--color-heading)",
       },
       borderRadius: { md: "8px", lg: "12px", pill: "999px" },
       fontFamily: {
         sans: ["Inter", "Noto Sans", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        fadeIn: "fadeIn 200ms ease-out forwards",
+        slideUp: "slideUp 250ms ease-out forwards",
       },
     },
   },

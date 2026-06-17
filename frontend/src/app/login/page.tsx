@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { FormInput } from "@/components/ui/FormInput";
+import { Alert } from "@/components/ui/Alert";
+import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,63 +34,40 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-[calc(100vh-3.5rem)] bg-surface flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-white border border-neutral-border rounded-lg p-8">
-          <h1 className="text-2xl font-medium text-heading mb-6">Sign in</h1>
+      <div className="w-full max-w-sm animate-slideUp">
+        <Card padding="lg">
+          <h1 className="text-h1 mb-6">Sign in</h1>
 
           {error && (
-            <div
-              role="alert"
-              className="mb-4 p-3 bg-error-50 border-l-4 border-error-400 text-error-900 text-sm rounded-md"
-            >
+            <Alert variant="error" className="mb-5">
               {error}
-            </div>
+            </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm text-body mb-1"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-3 border border-neutral-border rounded-md text-body bg-white focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-600"
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <FormInput
+              id="email"
+              label="Email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm text-body mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 px-3 border border-neutral-border rounded-md text-body bg-white focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-600"
-              />
-            </div>
+            <FormInput
+              id="password"
+              label="Password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 bg-primary-600 text-white font-medium rounded-md hover:opacity-90 disabled:opacity-60 transition-opacity"
-            >
+            <Button type="submit" variant="primary" loading={loading} fullWidth className="mt-1">
               {loading ? "Signing in…" : "Sign in"}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 text-sm text-muted text-center">
@@ -95,7 +76,7 @@ export default function LoginPage() {
               Create one
             </Link>
           </p>
-        </div>
+        </Card>
       </div>
     </main>
   );

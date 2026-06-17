@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Light mode tokens ──────────────────────────────────────────────────── */
 :root {
   --color-primary-50: #E6F1FB;
   --color-primary-200: #85B7EB;
@@ -28,6 +29,7 @@
   --color-error-900: #501313;
 
   --color-surface: #F1EFE8;
+  --color-card: #FFFFFF;
   --color-border: #D3D1C7;
   --color-muted: #888780;
   --color-body: #444441;
@@ -39,15 +41,85 @@
   --font-sans: 'Inter', 'Noto Sans', system-ui, sans-serif;
 }
 
+/* ─── Dark mode token overrides ─────────────────────────────────────────── */
+.dark {
+  --color-surface: #1C1B18;
+  --color-card: #272520;
+  --color-border: #3A3837;
+  --color-muted: #7A786F;
+  --color-body: #C8C6BE;
+  --color-heading: #F1EFE8;
+
+  --color-success-50: #0D2B05;
+  --color-success-600: #639922;
+  --color-success-900: #C0DD97;
+
+  --color-warning-50: #2B1600;
+  --color-warning-600: #EF9F27;
+  --color-warning-900: #FAC775;
+
+  --color-error-50: #2B0808;
+  --color-error-400: #E24B4A;
+  --color-error-600: #F08080;
+  --color-error-900: #F7C1C1;
+
+  --color-primary-50: #062645;
+  --color-primary-200: #1A4B7A;
+  --color-primary-400: #378ADD;
+  --color-primary-600: #5BA3E0;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* ─── Base ───────────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-body);
   line-height: 1.7;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* ─── Typography utilities ───────────────────────────────────────────────── */
+@layer components {
+  .text-display {
+    @apply text-[1.75rem] font-medium leading-[1.3] text-heading;
+  }
+  .text-h1 {
+    @apply text-[1.375rem] font-medium leading-[1.35] text-heading;
+  }
+  .text-h2 {
+    @apply text-[1.125rem] font-medium leading-[1.4] text-heading;
+  }
+  .text-h3 {
+    @apply text-base font-medium leading-[1.45] text-heading;
+  }
+  .text-caption {
+    @apply text-[0.8125rem] leading-[1.5] text-muted;
+  }
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Reduced-motion safety ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
