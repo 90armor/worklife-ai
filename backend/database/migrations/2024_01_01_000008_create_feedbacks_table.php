@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignUuid('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignUuid('chat_message_id')->nullable()->constrained('chat_messages')->nullOnDelete();
             $table->integer('rating')->nullable();
-            $table->text('comments')->nullable();
+            $table->text('comment')->nullable();
             $table->timestamp('created_at')->nullable();
         });
     }

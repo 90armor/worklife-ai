@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document defines the database schema for the **Foreign Worker Integration Platform (Bridge Japan AI)**.
+This document defines the database schema for the **WorkLife AI** platform.
 
 The database is designed to support:
 
@@ -333,7 +333,7 @@ CREATE TABLE feedbacks (
 
     rating INTEGER,
 
-    comments TEXT,
+    comment TEXT,
 
     created_at TIMESTAMP,
 
@@ -541,6 +541,3 @@ translated_training_materials
 4. Design for future multilingual support.
 5. Maintain scalability for employer onboarding and workforce knowledge transfer.
 6. Separate transactional data from vectorized knowledge data.
-
-```
-```

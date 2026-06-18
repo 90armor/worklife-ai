@@ -150,13 +150,29 @@ Responsibilities:
 
 Core APIs:
 
-POST /documents/upload
+POST /auth/register
 
-POST /chat
+POST /auth/login
+
+GET /profile
+
+PUT /profile
+
+POST /documents
+
+GET /documents/{id}
+
+POST /chat/sessions
+
+POST /chat/messages
 
 GET /guides
 
-GET /profile
+GET /guides/{id}
+
+POST /guides/{id}/save
+
+DELETE /guides/{id}/save
 
 POST /feedback
 

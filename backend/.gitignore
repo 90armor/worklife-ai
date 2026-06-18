@@ -1,3 +1,17 @@
 /vendor
+/bootstrap/cache
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+
 .env
+.env.backup
+.env.production
 .phpunit.result.cache
+
+# Artisan schema dump (auto-generated, not a migration)
+/database/schema
+
+# Composer auth credentials
+auth.json
