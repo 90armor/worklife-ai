@@ -157,6 +157,82 @@ Deliverables:
 
 ---
 
+## TASK-005A
+
+Title:
+Language & Appearance Settings (Profile Avatar Menu)
+
+Status:
+TODO
+
+Parent:
+TASK-005 (User Profile)
+
+Requirements:
+
+When the logged-in user clicks the profile avatar in the Sidebar
+(`frontend/src/components/Sidebar.tsx`), the existing dropdown
+(Settings / Sign out) must also expose Language and Appearance.
+Both open in a modal, not a new page.
+
+Entry point:
+
+* Add "Language" and "Appearance" items to the avatar dropdown
+* Keep existing Settings and Sign out items
+* Dropdown button retains `aria-haspopup` / `aria-expanded`
+
+Appearance section:
+
+* Theme toggle: Light, Dark, System (all three)
+* Reuse existing `useTheme()` hook and `localStorage` key `theme`
+  (see UI_UX_GUIDELINES.md → Theme Modes; DEC-009)
+* Segmented control or radio group
+* Each option labelled with text, not icons only (multilingual)
+* Do NOT add a new persistence mechanism
+
+Language section:
+
+* Selector for Preferred Language
+* Persist via `PUT /profile` using `{ success, data }` envelope (DEC-006)
+* Read JWT from `localStorage` key `worklife_token` (DEC-007) for the
+  Authorization header
+* Do NOT add a new endpoint
+
+Styling:
+
+* Tailwind only, no inline styles
+* Semantic tokens (`bg-surface-raised`, `border-neutral-border`,
+  `text-body`, etc.) so dark mode works automatically
+* Modal radius `lg` (12px), 44×44px min touch targets
+* Visible focus rings (`ring-2 ring-primary-400`)
+* Sentence-case labels
+
+Accessibility:
+
+* Modal: `role="dialog"`, `aria-modal="true"`, labelled heading,
+  focus trap, Esc-to-close
+* Backdrop `aria-hidden="true"`
+* Fully keyboard operable
+
+Scope discipline:
+
+* Reuse existing components and `useTheme`
+* No new dependencies / state-management libraries (Rule 3)
+* Implement only this; do not touch unrelated code
+
+Deliverables:
+
+* Avatar menu opens a modal with Language and Appearance sections
+* Language change round-trips through `PUT /profile`
+* Theme change persists and applies before first paint
+
+Docs:
+
+* Update API_SPEC.md only if an endpoint shape changes (should not)
+* If a reusable modal component is added, record it in DECISION.md
+
+---
+
 # Out Of Scope
 
 Do NOT implement:

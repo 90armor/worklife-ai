@@ -60,6 +60,7 @@ class ProfileController extends Controller
     {
         return [
             'id'                => $user->id,
+            'email'             => $user->email,
             'fullName'          => $user->full_name,
             'nationality'       => $user->nationality,
             'preferredLanguage' => $user->preferred_language,

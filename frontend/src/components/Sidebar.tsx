@@ -7,12 +7,15 @@ import React, {
   useState,
   useCallback,
   useRef,
+  useMemo,
   Suspense,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { useTheme } from "@/components/ThemeProvider";
+import { api } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -34,6 +37,8 @@ interface SidebarContextValue {
   openMobile: () => void;
   closeMobile: () => void;
 }
+
+type ActiveSubmenu = "language" | "appearance";
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -100,7 +105,7 @@ function PlusIcon() {
   );
 }
 
-function SearchIcon({ size = 14 }: { size?: number }) {
+function SearchIcon({ size = 14 }: Readonly<{ size?: number }>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <circle cx="11" cy="11" r="8" />
@@ -162,9 +167,100 @@ function LogoutIcon() {
   );
 }
 
+function GlobeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function MonitorIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function clearTimerRef(ref: React.MutableRefObject<ReturnType<typeof setTimeout> | null>) {
+  if (ref.current !== null) { clearTimeout(ref.current); ref.current = null; }
+}
+
+function ThemeOptionIcon({ value }: Readonly<{ value: "light" | "dark" | "system" }>) {
+  if (value === "dark") return <MoonIcon />;
+  if (value === "system") return <MonitorIcon />;
+  return <SunIcon />;
+}
+
+function deriveInitials(name: string): string {
+  if (!name) return "··";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function calcSubmenuFlipped(ref: React.RefObject<HTMLDivElement>): boolean {
+  if (!ref.current) return false;
+  return ref.current.getBoundingClientRect().right + 180 > globalThis.innerWidth;
+}
+
+// ── Menu data ─────────────────────────────────────────────────────────────────
+
+const LANGUAGE_OPTIONS = [
+  { code: "en", native: "English" },
+  { code: "ja", native: "日本語" },
+  { code: "vi", native: "Tiếng Việt" },
+  { code: "id", native: "Bahasa Indonesia" },
+  { code: "ne", native: "नेपाली" },
+  { code: "my", native: "မြန်မာဘာသာ" },
+] as const;
+
+const THEME_OPTIONS = [
+  { value: "light" as const, label: "Light" },
+  { value: "dark" as const, label: "Dark" },
+  { value: "system" as const, label: "System" },
+] as const;
+
 // ── SidebarProvider ───────────────────────────────────────────────────────────
 
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
+export function SidebarProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -184,8 +280,13 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const openMobile = useCallback(() => setIsMobileOpen(true), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
 
+  const value = useMemo(
+    () => ({ isCollapsed, isMobileOpen, toggleCollapsed, openMobile, closeMobile }),
+    [isCollapsed, isMobileOpen, toggleCollapsed, openMobile, closeMobile]
+  );
+
   return (
-    <SidebarContext.Provider value={{ isCollapsed, isMobileOpen, toggleCollapsed, openMobile, closeMobile }}>
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   );
@@ -208,7 +309,7 @@ export function SidebarMobileToggle() {
 
 // ── Conversation item ─────────────────────────────────────────────────────────
 
-function ConversationItem({ conv, isActive }: { conv: Conversation; isActive: boolean }) {
+function ConversationItem({ conv, isActive }: Readonly<{ conv: Conversation; isActive: boolean }>) {
   return (
     <Link
       href={`/chat?id=${conv.id}`}
@@ -233,21 +334,86 @@ function SidebarInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeId = searchParams.get("id");
+  const { theme, setTheme } = useTheme();
 
   const [search, setSearch] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [userName, setUserName] = useState("Guest User");
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [activeSubmenu, setActiveSubmenu] = useState<ActiveSubmenu | null>(null);
+  const [submenuFlipped, setSubmenuFlipped] = useState(false);
+  const [language, setLanguage] = useState("");
+  const [langError, setLangError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFinePointer = useRef(false);
+  const profileFetched = useRef(false);
+  const submenuOpenSource = useRef<"pointer" | "click">("click");
+  const langSubmenuRef = useRef<HTMLDivElement>(null);
+  const appSubmenuRef = useRef<HTMLDivElement>(null);
+
+  // Detect pointer capability once on mount
   useEffect(() => {
-    // Close user menu when clicking outside
+    isFinePointer.current = globalThis.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  }, []);
+
+  // Outside-click closes everything
+  useEffect(() => {
     function onPointerDown(e: PointerEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        clearTimerRef(closeTimerRef);
+        clearTimerRef(submenuCloseTimerRef);
         setShowUserMenu(false);
+        setActiveSubmenu(null);
       }
     }
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      clearTimerRef(closeTimerRef);
+      clearTimerRef(submenuCloseTimerRef);
+    };
+  }, []);
+
+  // Esc → close submenu first, then main menu
+  useEffect(() => {
+    if (!showUserMenu) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (activeSubmenu === null) {
+        setShowUserMenu(false);
+      } else {
+        setActiveSubmenu(null);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showUserMenu, activeSubmenu]);
+
+  // Focus first item in submenu only when opened via keyboard/click (not hover)
+  useEffect(() => {
+    if (submenuOpenSource.current === "pointer") return;
+    if (activeSubmenu === "language") {
+      langSubmenuRef.current?.querySelector<HTMLElement>("button")?.focus();
+    } else if (activeSubmenu === "appearance") {
+      appSubmenuRef.current?.querySelector<HTMLElement>("button")?.focus();
+    }
+  }, [activeSubmenu]);
+
+  // Fetch profile once on mount; cache result so re-opening the menu is instant
+  useEffect(() => {
+    if (profileFetched.current) return;
+    profileFetched.current = true;
+    api.profile.get().then((res) => {
+      setUserName(res.data.fullName ?? "");
+      setUserEmail(res.data.email ?? "");
+      setLanguage(res.data.preferredLanguage ?? "");
+    }).catch(() => {
+      profileFetched.current = false; // allow one retry on next render
+    });
   }, []);
 
   // Close mobile sidebar on route change
@@ -261,18 +427,77 @@ function SidebarInner() {
 
   const groups = groupConversations(filtered);
 
-  const initials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = deriveInitials(userName);
+
+  function openMenu() {
+    clearTimerRef(closeTimerRef);
+    setShowUserMenu(true);
+  }
+
+  function closeMenu() {
+    clearTimerRef(closeTimerRef);
+    clearTimerRef(submenuCloseTimerRef);
+    setShowUserMenu(false);
+    setActiveSubmenu(null);
+  }
+
+  function scheduleClose() {
+    clearTimerRef(closeTimerRef);
+    closeTimerRef.current = setTimeout(() => setShowUserMenu(false), 200);
+  }
+
+  function computeAndSetFlip() {
+    setSubmenuFlipped(calcSubmenuFlipped(userMenuRef));
+  }
+
+  function openSubmenu(name: ActiveSubmenu) {
+    clearTimerRef(submenuCloseTimerRef);
+    computeAndSetFlip();
+    submenuOpenSource.current = "pointer";
+    setActiveSubmenu(name);
+  }
+
+  function scheduleSubmenuClose() {
+    clearTimerRef(submenuCloseTimerRef);
+    submenuCloseTimerRef.current = setTimeout(() => setActiveSubmenu(null), 180);
+  }
+
+  function cancelSubmenuClose() {
+    clearTimerRef(submenuCloseTimerRef);
+  }
+
+  async function handleLanguageSave(code: string) {
+    const prev = language;
+    setLanguage(code);
+    setLangError(null);
+    setSaving(true);
+    try {
+      await api.profile.update({ preferredLanguage: code });
+    } catch {
+      setLanguage(prev);
+      setLangError("Failed to save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function handleSignOut() {
     auth.removeToken();
-    setShowUserMenu(false);
+    closeMenu();
     router.push("/login");
   }
+
+  // Shared submenu panel classes — flip to left when there's no room on the right
+  const submenuPanel = [
+    "absolute top-0 min-w-[180px] rounded-lg border border-neutral-border bg-card shadow-lg overflow-hidden z-50 animate-slideUp",
+    submenuFlipped ? "right-full mr-1.5" : "left-full ml-1.5",
+  ].join(" ");
+  const menuRowBase = [
+    "flex w-full items-center gap-2.5 px-3 min-h-[44px] text-sm transition-colors duration-150",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400",
+  ].join(" ");
+  const menuRowSelected = "bg-primary-50 text-primary-800 dark:bg-primary-600/10 dark:text-primary-400 font-medium";
+  const menuRowDefault = "text-body hover:bg-surface dark:hover:bg-white/5";
 
   return (
     <>
@@ -291,12 +516,9 @@ function SidebarInner() {
         className={[
           "fixed top-0 left-0 z-40 h-screen flex flex-col select-none",
           "bg-card border-r border-neutral-border",
-          // Width: desktop collapses to icon rail, mobile is always full width
           "w-sidebar",
           isCollapsed ? "md:w-sidebar-rail" : "md:w-sidebar",
-          // Mobile: slide in/out
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          // transition-all instead of transition-[width,transform] — comma in brackets breaks Tailwind parser
           "transition-all duration-300 ease-in-out",
         ].join(" ")}
       >
@@ -305,11 +527,9 @@ function SidebarInner() {
           "flex items-center gap-2 px-3 pt-4 pb-3 flex-shrink-0",
           isCollapsed ? "md:flex-col md:gap-1" : "",
         ].join(" ")}>
-          {/* Logo mark */}
           <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary-600 flex items-center justify-center text-white font-medium text-sm">
             W
           </div>
-
           <span className={[
             "flex-1 font-medium text-heading text-sm truncate overflow-hidden",
             "transition-all duration-300",
@@ -317,8 +537,6 @@ function SidebarInner() {
           ].join(" ")}>
             WorkLife AI
           </span>
-
-          {/* Desktop collapse toggle */}
           <button
             onClick={toggleCollapsed}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -330,8 +548,6 @@ function SidebarInner() {
           >
             {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </button>
-
-          {/* Mobile close */}
           <button
             onClick={closeMobile}
             aria-label="Close sidebar"
@@ -390,8 +606,7 @@ function SidebarInner() {
           className="flex-1 overflow-y-auto px-2 min-h-0"
           style={{ scrollbarWidth: "thin", scrollbarColor: "var(--color-border) transparent" }}
         >
-          {/* Collapsed: icon-only list */}
-          {isCollapsed ? (
+          {isCollapsed && (
             <div className="hidden md:flex flex-col items-center gap-1 mt-1">
               <button
                 onClick={toggleCollapsed}
@@ -410,7 +625,8 @@ function SidebarInner() {
                 <SearchIcon size={16} />
               </button>
             </div>
-          ) : groups.length > 0 ? (
+          )}
+          {!isCollapsed && groups.length > 0 && (
             <div className="space-y-4 pb-2 pt-1">
               {groups.map((group) => (
                 <div key={group.label}>
@@ -425,7 +641,8 @@ function SidebarInner() {
                 </div>
               ))}
             </div>
-          ) : (
+          )}
+          {!isCollapsed && groups.length === 0 && (
             <p className="text-caption text-center py-10">No conversations found.</p>
           )}
         </nav>
@@ -434,9 +651,11 @@ function SidebarInner() {
         <div
           ref={userMenuRef}
           className="relative px-2 py-3 border-t border-neutral-border flex-shrink-0"
+          onPointerEnter={(e) => { if (e.pointerType !== "touch") openMenu(); }}
+          onPointerLeave={(e) => { if (e.pointerType !== "touch") scheduleClose(); }}
         >
           <button
-            onClick={() => setShowUserMenu((p) => !p)}
+            onClick={() => (showUserMenu ? closeMenu() : openMenu())}
             aria-label="User menu"
             aria-haspopup="true"
             aria-expanded={showUserMenu}
@@ -448,49 +667,162 @@ function SidebarInner() {
               isCollapsed ? "md:justify-center md:p-2 p-2" : "px-2 py-2",
             ].join(" ")}
           >
-            {/* Avatar */}
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-50 dark:bg-primary-600/15 text-primary-600 dark:text-primary-400 flex items-center justify-center font-medium text-sm border border-primary-100 dark:border-primary-600/20">
               {initials}
             </div>
-
             <div className={[
               "flex-1 text-left min-w-0 overflow-hidden",
               "transition-all duration-300",
               isCollapsed ? "md:hidden" : "block",
             ].join(" ")}>
-              <p className="text-sm font-medium text-heading truncate leading-tight">{userName}</p>
-              <p className="text-[11px] text-muted truncate">Settings &amp; preferences</p>
+              <p className="text-sm font-medium text-heading truncate leading-tight">{userName || "···"}</p>
+              <p className="text-[11px] text-muted truncate">{userEmail || "Settings & preferences"}</p>
             </div>
           </button>
 
-          {/* Dropdown menu */}
+          {/* ── Main dropdown ─────────────────────────────────────────────── */}
           {showUserMenu && (
             <div
               role="menu"
+              aria-label="User menu"
               className={[
-                "absolute bottom-full mb-1.5 rounded-lg border border-neutral-border bg-card shadow-lg overflow-hidden z-50",
+                // overflow-visible so absolute submenus escape the clipping box
+                "absolute bottom-full mb-1.5 rounded-lg border border-neutral-border bg-card shadow-lg overflow-visible z-50",
                 "animate-slideUp min-w-[180px]",
                 isCollapsed ? "left-14" : "left-2 right-2",
               ].join(" ")}
             >
+              {/* ── Language row ─────────────────────────────────────────── */}
+              <div
+                className="relative rounded-t-lg"
+                onPointerEnter={(e) => { if (isFinePointer.current && e.pointerType !== "touch") openSubmenu("language"); }}
+                onPointerLeave={(e) => { if (isFinePointer.current && e.pointerType !== "touch") scheduleSubmenuClose(); }}
+              >
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={activeSubmenu === "language"}
+                  onClick={() => { cancelSubmenuClose(); computeAndSetFlip(); submenuOpenSource.current = "click"; setActiveSubmenu((v) => (v === "language" ? null : "language")); }}
+                  className={[menuRowBase, menuRowDefault, "justify-between w-full"].join(" ")}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <GlobeIcon />
+                    <span>Language</span>
+                  </span>
+                  <ChevronRightIcon />
+                </button>
+
+                {activeSubmenu === "language" && (
+                  <div
+                    ref={langSubmenuRef}
+                    role="menu"
+                    aria-label="Language"
+                    className={submenuPanel}
+                    onPointerEnter={() => cancelSubmenuClose()}
+                    onPointerLeave={() => { if (isFinePointer.current) scheduleSubmenuClose(); }}
+                  >
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.code}
+                        role="menuitemradio"
+                        aria-checked={language === opt.code}
+                        onClick={() => handleLanguageSave(opt.code)}
+                        disabled={saving}
+                        className={[
+                          menuRowBase,
+                          "justify-between",
+                          language === opt.code ? menuRowSelected : menuRowDefault,
+                          saving ? "opacity-50 cursor-not-allowed" : "",
+                        ].join(" ")}
+                      >
+                        <span>{opt.native}</span>
+                        {language === opt.code && <CheckIcon />}
+                      </button>
+                    ))}
+                    {langError && (
+                      <p className="px-3 py-2 text-xs text-error-600 border-t border-neutral-border">
+                        {langError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Appearance row ───────────────────────────────────────── */}
+              <div
+                className="relative"
+                onPointerEnter={(e) => { if (isFinePointer.current && e.pointerType !== "touch") openSubmenu("appearance"); }}
+                onPointerLeave={(e) => { if (isFinePointer.current && e.pointerType !== "touch") scheduleSubmenuClose(); }}
+              >
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={activeSubmenu === "appearance"}
+                  onClick={() => { cancelSubmenuClose(); computeAndSetFlip(); submenuOpenSource.current = "click"; setActiveSubmenu((v) => (v === "appearance" ? null : "appearance")); }}
+                  className={[menuRowBase, menuRowDefault, "justify-between w-full"].join(" ")}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <SunIcon />
+                    <span>Appearance</span>
+                  </span>
+                  <ChevronRightIcon />
+                </button>
+
+                {activeSubmenu === "appearance" && (
+                  <div
+                    ref={appSubmenuRef}
+                    role="menu"
+                    aria-label="Appearance"
+                    className={submenuPanel}
+                    onPointerEnter={() => cancelSubmenuClose()}
+                    onPointerLeave={() => { if (isFinePointer.current) scheduleSubmenuClose(); }}
+                  >
+                    {THEME_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        role="menuitemradio"
+                        aria-checked={theme === opt.value}
+                        onClick={() => setTheme(opt.value)}
+                        className={[
+                          menuRowBase,
+                          theme === opt.value ? menuRowSelected : menuRowDefault,
+                        ].join(" ")}
+                      >
+                        <ThemeOptionIcon value={opt.value} />
+                        <span className="flex-1">{opt.label}</span>
+                        {theme === opt.value && <CheckIcon />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="h-px bg-neutral-border" />
+
+              {/* ── Settings ─────────────────────────────────────────────── */}
               <Link
                 href="/profile"
                 role="menuitem"
-                className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-body hover:bg-surface dark:hover:bg-white/5 transition-colors duration-150"
-                onClick={() => setShowUserMenu(false)}
+                className={[menuRowBase, menuRowDefault].join(" ")}
+                onClick={() => closeMenu()}
               >
                 <SettingsIcon />
                 <span>Settings</span>
               </Link>
+
               <div className="h-px bg-neutral-border" />
-              <button
-                role="menuitem"
-                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-body hover:bg-surface dark:hover:bg-white/5 transition-colors duration-150"
-                onClick={handleSignOut}
-              >
-                <LogoutIcon />
-                <span>Sign out</span>
-              </button>
+
+              {/* ── Sign out ─────────────────────────────────────────────── */}
+              <div className="rounded-b-lg overflow-hidden">
+                <button
+                  role="menuitem"
+                  className={[menuRowBase, menuRowDefault, "w-full"].join(" ")}
+                  onClick={handleSignOut}
+                >
+                  <LogoutIcon />
+                  <span>Sign out</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

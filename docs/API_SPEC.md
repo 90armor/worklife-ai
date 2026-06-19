@@ -71,9 +71,12 @@ Response
 ```json
 {
   "id": "uuid",
+  "email": "user@example.com",
   "fullName": "John Doe",
   "nationality": "Myanmar",
-  "preferredLanguage": "Burmese"
+  "preferredLanguage": "en",
+  "occupation": "Caregiver",
+  "prefecture": "Tokyo"
 }
 ```
 

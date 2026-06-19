@@ -12,6 +12,7 @@ export interface SearchResult {
 
 export interface Profile {
   id: string;
+  email: string;
   fullName: string;
   nationality: string | null;
   preferredLanguage: string | null;

@@ -1,6 +1,6 @@
-import { Nav } from "@/components/Nav";
+import { NavWrapper } from "@/components/layout/NavWrapper";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <a
@@ -9,7 +9,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       >
         Skip to content
       </a>
-      <Nav />
+      <NavWrapper />
       <div id="main">{children}</div>
     </>
   );

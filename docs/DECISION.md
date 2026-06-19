@@ -96,6 +96,24 @@ Reason: Without CORS the browser blocks all cross-origin API calls from the Next
 
 ---
 
+## DEC-010 — Flyout submenus for Language and Appearance (avatar dropdown)
+
+Date: 2026-06-19
+Task: TASK-005A
+
+Decision: Language and Appearance are implemented as inline flyout submenus that open to the side of the avatar dropdown, replacing the previous full-screen `SettingsModal`.
+
+Key choices:
+- Submenus render as `absolute left-full top-0` children of a `relative` row-wrapper `<div>` inside the main menu. The main menu uses `overflow-visible` so absolutely-positioned submenus are not clipped.
+- Hover open/close uses a 180 ms close-delay timer (`submenuCloseTimerRef`) so the cursor can travel from the row into the submenu without it closing.
+- Pointer type is detected once at mount via `globalThis.matchMedia("(hover: hover) and (pointer: fine)")` and stored in `isFinePointer` ref; hover events are ignored on touch devices.
+- Keyboard: Esc closes the submenu first, then the main menu on a second press. Focus is moved to the first item in the submenu when it opens.
+- Language values are ISO codes (`en`, `ja`, `vi`, `id`, `ne`, `my`) matching what the backend stores in `preferred_language` — fixing a previous bug where display names were sent instead.
+- Optimistic update with rollback: `handleLanguageSave` sets language state immediately, calls `PUT /profile`, and rolls back + shows an inline error string on failure.
+- No new dependencies added. All icons are inline SVGs; `MoonIcon` and `MonitorIcon` were added to the existing icon block.
+
+---
+
 ## DEC-009 — Design tokens applied via Tailwind config extend
 
 Date: 2026-06-16
