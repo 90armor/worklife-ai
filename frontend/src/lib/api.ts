@@ -28,8 +28,16 @@ export interface ProfileInput {
   prefecture: string;
 }
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public body: unknown,
+  ) {
+    super(`API error ${status}`);
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  // Destructure so we can merge headers instead of letting ...options replace them wholesale
   const { headers: extraHeaders, ...restOptions } = options;
   const res = await fetch(`${API_URL}${path}`, {
     ...restOptions,
@@ -40,7 +48,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${await res.text()}`);
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      body = await res.text();
+    }
+    throw new ApiError(res.status, body);
   }
   return res.json();
 }
@@ -78,14 +92,31 @@ export const api = {
 
   // Authentication
   auth: {
-    register: (email: string, password: string, fullName: string) =>
+    register: (email: string, password: string, fullName: string, forceFresh = false, oldPassword?: string) =>
       request<{ success: boolean; userId: string }>("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, fullName }),
+        // JSON.stringify silently drops undefined values, so forceFresh and
+        // oldPassword are omitted from the payload when not supplied.
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          forceFresh: forceFresh || undefined,
+          oldPassword,
+        }),
       }),
 
     login: (email: string, password: string) =>
       request<{ accessToken: string }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }),
+
+    logout: () =>
+      authedRequest<{ success: boolean }>("/auth/logout", { method: "POST" }),
+
+    restore: (email: string, password: string) =>
+      request<{ accessToken: string }>("/auth/restore", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
@@ -101,5 +132,11 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data),
       }),
+  },
+
+  // Account management
+  account: {
+    delete: () =>
+      authedRequest<{ success: boolean }>("/account", { method: "DELETE" }),
   },
 };

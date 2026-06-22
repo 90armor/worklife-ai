@@ -96,6 +96,17 @@ Reason: Without CORS the browser blocks all cross-origin API calls from the Next
 
 ---
 
+## DEC-009 — Design tokens applied via Tailwind config extend
+
+Date: 2026-06-16
+Task: TASK-005
+
+Decision: The full color and radius token map from `docs/tokens.md` is applied in `tailwind.config.ts` under `theme.extend`. CSS variables are added to `globals.css`.
+
+Reason: `tokens.md` provides an exact Tailwind extension block. Using it directly means component classes like `bg-primary-600`, `text-error-900`, `border-neutral-border` map precisely to the design system without duplication.
+
+---
+
 ## DEC-010 — Flyout submenus for Language and Appearance (avatar dropdown)
 
 Date: 2026-06-19
@@ -114,11 +125,88 @@ Key choices:
 
 ---
 
-## DEC-009 — Design tokens applied via Tailwind config extend
+## DEC-011 — Soft delete on users table (TASK-006)
 
-Date: 2026-06-16
-Task: TASK-005
+Date: 2026-06-22
+Task: TASK-006
 
-Decision: The full color and radius token map from `docs/tokens.md` is applied in `tailwind.config.ts` under `theme.extend`. CSS variables are added to `globals.css`.
+Decision: Added `deleted_at` column to `users` via a new migration and the `SoftDeletes` trait to the `User` model.
 
-Reason: `tokens.md` provides an exact Tailwind extension block. Using it directly means component classes like `bg-primary-600`, `text-error-900`, `border-neutral-border` map precisely to the design system without duplication.
+Reason: Preserves user data on account deletion so the account can be restored. The `auth:api` guard and all Eloquent queries automatically exclude soft-deleted rows, so a soft-deleted user cannot log in or appear in GET /profile.
+
+---
+
+## DEC-012 — JWT blacklist uses file cache; storage volume mounted for persistence (TASK-006)
+
+Date: 2026-06-22
+Task: TASK-006
+
+Cache driver: **`file`** (`CACHE_STORE=file` in `backend/.env`). tymon/jwt-auth's blacklist storage provider (`Tymon\JWTAuth\Providers\Storage\Illuminate::class`) delegates to Laravel's cache, so the blacklist lives in `storage/framework/cache/data/` inside the container.
+
+**Concrete failure mode without the fix:** `./backend/storage` was not mounted in `docker-compose.yml`. On container restart the file cache was wiped, and any previously-invalidated JWT (from logout or soft-delete) became valid again for the remainder of its TTL.
+
+**Fix applied:** `./backend/storage:/var/www/html/storage` added to the backend volumes in `docker-compose.yml`. The file cache now survives restarts.
+
+**Residual risk (acceptable for MVP):** The file store is still single-instance. A horizontal scale-out (multiple backend containers sharing no filesystem) would require switching to a shared persistent store (Redis, database). Note this before adding a second backend replica.
+
+**Deleted accounts specifically:** Even without a working blacklist, a soft-deleted user cannot authenticate because `SoftDeletes` makes `User::find($id)` return `null`, which the `auth:api` guard treats as unauthenticated. The blacklist is a defence-in-depth measure; soft-delete is the durable gate.
+
+---
+
+## DEC-013 — Password required to restore a soft-deleted account (TASK-006)
+
+Date: 2026-06-22
+Task: TASK-006
+
+Decision: POST /auth/restore requires the user's old password and verifies it against `password_hash` before restoring. A mismatch returns a generic 401 that does not reveal whether the email maps to a deleted account.
+
+Reason: The register form is an unauthenticated surface. Without password verification, anyone who knows a deleted email address could hijack the restored account.
+
+---
+
+## DEC-014 — "Start fresh" requires old password; hard-delete is transactional (TASK-006)
+
+Date: 2026-06-22
+Task: TASK-006
+
+Decision: `forceFresh: true` also requires `oldPassword` (verified against the soft-deleted account's `password_hash`). The hard-delete and new-account creation are wrapped in `DB::transaction()`.
+
+**Why old password is required:** Without it, any caller who discovers a soft-deleted email and receives the 409 `ACCOUNT_SOFT_DELETED` code can send `forceFresh: true` with any new credentials and permanently destroy all that user's data. Requiring the old password gates destruction to the account owner. Users who forgot their old password cannot start fresh without it (a password-reset flow would be needed — out of scope for MVP).
+
+**Why the transaction:** Prevents partial state where the old account is purged but the new account fails to create (e.g. DB error mid-write).
+
+FK cascade audit (no manual cleanup needed):
+- `documents`, `chat_sessions`, `saved_guides` → `CASCADE ON DELETE` (rows deleted)
+- `chat_messages` → cascades through `chat_sessions`
+- `feedbacks`, `ai_processing_logs` → `NULL ON DELETE` (user_id nulled, rows kept — see DEC-016)
+
+TODO: enforce restore retention window (e.g. purge soft-deleted accounts older than N days via a scheduled job). See AuthController.php for the marked TODOs.
+
+---
+
+## DEC-015 — Settings modal replaces /profile navigation (TASK-006)
+
+Date: 2026-06-22
+Task: TASK-006
+
+Decision: The Settings item in the avatar dropdown now opens a `SettingsModal` (Claude-style: left sidebar nav + right detail panel) instead of navigating to `/profile`. The `/profile` route is kept as a secondary entry point and still renders the General panel.
+
+Key choices:
+- Focus trap implemented inline (no library) via a `useFocusTrap` hook that intercepts Tab/Shift+Tab inside the dialog element.
+- Backdrop click and Esc close the modal, except when a destructive confirmation step is active (`preventClose` flag set by AccountPanel).
+- General panel pre-fills from `api.profile.get()` on each modal open. Optimistic save, inline error, success indicator.
+- Account panel: logout calls `POST /auth/logout` then `auth.removeToken()` (token removed even if server call fails). Delete account is two-step (warning → confirm), never dismissable mid-flow.
+- No new dependencies added (Rule 3).
+
+---
+
+## DEC-016 — Orphaned feedback and log rows after hard delete (TASK-006)
+
+Date: 2026-06-22
+Task: TASK-006
+
+Decision: On `forceDelete()` ("start fresh"), `feedbacks` and `ai_processing_logs` rows have their `user_id` set to `NULL` (FK defined as `nullOnDelete()`). The rows are retained, not purged.
+
+**Rationale:** These are analytics/audit rows. With `user_id` nulled they contain no directly identifying data — they are effectively anonymised. Retaining them is standard practice for aggregate metrics.
+
+**GDPR / erasure caveat:** `feedbacks.comment` is a free-text field that *could* contain personal information typed by the user. If the product makes an explicit "all personal data permanently deleted" promise, feedback comment text should also be cleared on hard delete. This is not implemented in the MVP; add a `$user->feedbacks()->update(['comment' => null])` step before `forceDelete()` if erasure compliance is required.

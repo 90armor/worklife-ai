@@ -18,5 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Return JSON 401 for unauthenticated API requests instead of redirecting
+        // to a named 'login' route (which does not exist in this API-only app).
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || str_starts_with($request->path(), 'api/')) {
+                return response()->json(['success' => false, 'message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
+            }
+        });
     })->create();

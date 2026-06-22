@@ -9,13 +9,19 @@ Route::prefix('v1')->group(function () {
         return ['message' => 'WorkLife AI API v1'];
     });
 
+    // Public auth routes
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
-        Route::post('login', [AuthController::class, 'login']);
+        Route::post('login',    [AuthController::class, 'login']);
+        Route::post('restore',  [AuthController::class, 'restore']);
     });
 
+    // Protected routes (valid JWT required)
     Route::middleware('auth:api')->group(function () {
-        Route::get('profile', [ProfileController::class, 'show']);
-        Route::put('profile', [ProfileController::class, 'update']);
+        Route::post('auth/logout', [AuthController::class, 'logout']);
+
+        Route::get('profile',    [ProfileController::class, 'show']);
+        Route::put('profile',    [ProfileController::class, 'update']);
+        Route::delete('account', [ProfileController::class, 'destroy']);
     });
 });

@@ -11,11 +11,11 @@ import React, {
   Suspense,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { useTheme } from "@/components/ThemeProvider";
 import { api } from "@/lib/api";
+import { useLogout } from "@/lib/useLogout";
+import { SettingsModal } from "@/components/SettingsModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -331,13 +331,14 @@ function ConversationItem({ conv, isActive }: Readonly<{ conv: Conversation; isA
 
 function SidebarInner() {
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const activeId = searchParams.get("id");
   const { theme, setTheme } = useTheme();
 
+  const logout = useLogout();
   const [search, setSearch] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [activeSubmenu, setActiveSubmenu] = useState<ActiveSubmenu | null>(null);
@@ -481,10 +482,9 @@ function SidebarInner() {
     }
   }
 
-  function handleSignOut() {
-    auth.removeToken();
+  async function handleSignOut() {
     closeMenu();
-    router.push("/login");
+    await logout();
   }
 
   // Shared submenu panel classes — flip to left when there's no room on the right
@@ -800,15 +800,14 @@ function SidebarInner() {
               <div className="h-px bg-neutral-border" />
 
               {/* ── Settings ─────────────────────────────────────────────── */}
-              <Link
-                href="/profile"
+              <button
                 role="menuitem"
-                className={[menuRowBase, menuRowDefault].join(" ")}
-                onClick={() => closeMenu()}
+                className={[menuRowBase, menuRowDefault, "w-full"].join(" ")}
+                onClick={() => { closeMenu(); setShowSettingsModal(true); }}
               >
                 <SettingsIcon />
                 <span>Settings</span>
-              </Link>
+              </button>
 
               <div className="h-px bg-neutral-border" />
 
@@ -827,6 +826,11 @@ function SidebarInner() {
           )}
         </div>
       </aside>
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </>
   );
 }
