@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ProfileController extends Controller
 {
@@ -56,10 +57,27 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function destroy(): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        try {
+            auth()->logout();
+        } catch (\Exception) {
+            // Token already expired or invalid — soft delete still proceeds.
+        }
+
+        $user->delete(); // soft delete — sets deleted_at, preserves all related data
+
+        return response()->json(['success' => true]);
+    }
+
     private function formatUser(User $user): array
     {
         return [
             'id'                => $user->id,
+            'email'             => $user->email,
             'fullName'          => $user->full_name,
             'nationality'       => $user->nationality,
             'preferredLanguage' => $user->preferred_language,

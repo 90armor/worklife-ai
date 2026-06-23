@@ -37,7 +37,9 @@ services:
       - ./backend/config:/var/www/html/config
       - ./backend/database:/var/www/html/database
       - ./backend/public:/var/www/html/public
+      - ./backend/bootstrap/app.php:/var/www/html/bootstrap/app.php
       - ./backend/bootstrap/cache:/var/www/html/bootstrap/cache
+      - ./backend/storage:/var/www/html/storage
       - ./backend/.env:/var/www/html/.env
     command: php -S 0.0.0.0:8000 -t public
     # Useful one-off commands (run with: docker exec app_backend <cmd>):

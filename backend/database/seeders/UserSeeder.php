@@ -16,7 +16,7 @@ class UserSeeder extends Seeder
                 'full_name'          => 'Ninety Armor',
                 'email'              => 'ninetyarmor@example.com',
                 'nationality'        => 'Myanmar',
-                'preferred_language' => 'my',
+                'preferred_language' => 'mm',
                 'prefecture'         => 'Tokyo',
                 'occupation'         => 'Caregiver',
             ],
@@ -44,6 +44,14 @@ class UserSeeder extends Seeder
                 'prefecture'         => 'Sapporo',
                 'occupation'         => 'Restaurant Staff',
             ],
+            [
+                'full_name'          => 'Maria Tanaka',
+                'email'              => 'maria@example.com',
+                'nationality'        => 'Japan',
+                'preferred_language' => 'jp',
+                'prefecture'         => 'Hokkaido',
+                'occupation'         => 'Teacher',
+            ]
         ];
 
         foreach ($users as $user) {
