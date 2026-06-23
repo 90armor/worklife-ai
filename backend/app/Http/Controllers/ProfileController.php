@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ProfileController extends Controller
@@ -73,16 +74,56 @@ class ProfileController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function setPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user->password_hash !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password already set. Use change-password to update it.',
+            ], 409);
+        }
+
+        $user->update(['password_hash' => Hash::make($validated['password'])]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function disconnectGoogle(): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user->password_hash === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Set a password before disconnecting Google to avoid losing access.',
+            ], 409);
+        }
+
+        $user->update(['google_id' => null, 'avatar_url' => null]);
+
+        return response()->json(['success' => true]);
+    }
+
     private function formatUser(User $user): array
     {
         return [
-            'id'                => $user->id,
-            'email'             => $user->email,
-            'fullName'          => $user->full_name,
-            'nationality'       => $user->nationality,
-            'preferredLanguage' => $user->preferred_language,
-            'occupation'        => $user->occupation,
-            'prefecture'        => $user->prefecture,
+            'id'                 => $user->id,
+            'email'              => $user->email,
+            'fullName'           => $user->full_name,
+            'nationality'        => $user->nationality,
+            'preferredLanguage'  => $user->preferred_language,
+            'occupation'         => $user->occupation,
+            'prefecture'         => $user->prefecture,
+            'hasPassword'        => $user->password_hash !== null,
+            'hasGoogleConnected' => $user->google_id !== null,
         ];
     }
 }

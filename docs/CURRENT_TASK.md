@@ -280,6 +280,82 @@ State explicitly: was blacklist_enabled already true; the FK cascade strategy us
 
 ---
 
+## TASK-007
+
+Laravel backend endpoints:
+Add the following endpoints. Place the password/Google routes inside the existing Route::middleware('auth:api')->group(...) block in routes/api.php (under the v1 prefix), since they act on the authenticated user. Note the current routes/api.php in the project only shows register, login, profile GET/PUT — but the frontend api.ts already calls /auth/logout, /auth/restore, and DELETE /account. Reconcile this: locate where those existing routes are actually defined and add the new ones consistently; do not duplicate routes.
+1. Set password (for Google-only users) — POST /v1/account/password
+
+Add a method setPassword to a controller (extend AuthController or a new AccountController, matching wherever account-delete already lives).
+
+* Authenticated route.
+* Validate: password required, string, min 8, confirmed (so a password_confirmation field is required).
+* Behavior: if $user->password_hash is already set, reject with 409 / a clear "Password already set" message (this endpoint is only for adding a password where none exists; a separate change-password flow can come later). Otherwise $user->update(['password_hash' => Hash::make($validated['password'])]).
+* Return { success: true }.
+
+2. Connect Google — handled by the existing GoogleAuthController OAuth redirect/callback flow, which already links a Google account to an existing email/password user on first sign-in (the firstOrCreate + "link Google" logic). For the "Connect your Google account" button in Sign-in methods, the frontend should just initiate that existing OAuth redirect (e.g. navigate to the Google auth redirect route). Confirm the route name for GoogleAuthController@redirect and expose it; do not build a parallel connect endpoint.
+3. Disconnect Google (optional but recommended for parity) — DELETE /v1/account/google
+
+* Authenticated route.
+* Guard: refuse to unlink Google if the user has no password_hash (otherwise they'd lock themselves out). Return 409 with a message telling them to set a password first.
+* Otherwise $user->update(['google_id' => null, 'avatar_url' => null]), return { success: true }.
+
+Frontend api.ts additions to match:
+tsaccount: {
+  delete: () => authedRequest(...),                    // existing
+  setPassword: (password: string, passwordConfirmation: string) =>
+    authedRequest<{ success: boolean }>("/account/password", {
+      method: "POST",
+      body: JSON.stringify({ password, password_confirmation: passwordConfirmation }),
+    }),
+  disconnectGoogle: () =>
+    authedRequest<{ success: boolean }>("/account/google", { method: "DELETE" }),
+},
+And expose the Google OAuth redirect URL (full backend URL, not the /api/v1 prefix if the OAuth routes live on the web/non-API router — verify which router GoogleAuthController is registered on before wiring the connect button).
+Validation & consistency requirements:
+
+* Match the existing controllers' style: $request->validate([...]), JSON responses shaped like { success: bool, ... }, UUID handling, Hash::make / Hash::check.
+* Use the camelCase ⇄ snake_case mapping convention already in ProfileController (request keys camelCase, DB columns snake_case).
+* After adding password support, ensure formatUser() exposes hasPassword so the UI reflects the new state immediately after the call returns.
+
+Verify with php artisan route:list (or by reading the route files) that all new routes resolve under the auth:api middleware before finishing.
+
+When done.
+
+Diff of every changed file (frontend + backend).
+Confirm: types check, lint passes, no console warnings.
+
+----
+
+## TASK-007A
+
+The backend endpoints and api.ts changes are done and correct, but you did not make any of the UI changes. The original task was the Account section redesign in SettingsModal.tsx — that's still required and is the main deliverable. Build it now, using the endpoints and types you already added (Profile.hasPassword, api.account.setPassword, api.account.disconnectGoogle, googleOAuthRedirectUrl). Do not touch the backend again.
+Restructure the AccountPanel component in SettingsModal.tsx into three sub-sections, each with its own sub-title heading styled like the existing <h2 className="text-base font-semibold text-heading mb-5"> (use a slightly smaller treatment for sub-titles within the panel so the three read as sections under one panel — match existing tokens, don't introduce new ones):
+Section 1 — Account
+
+- Full name: read-only label/value row from api.profile.get(). Not an input.
+- Email: read-only label/value row. Add a disabled "Update email" affordance marked as a coming-soon/next feature — render it but don't wire a flow.
+- Logout: keep the existing logout button and useLogout() behavior exactly as-is.
+- Delete account: keep the existing delete flow and onPreventClose confirmation pattern. Show this description text as sub-tile row: "Delete your account and associated data from the WorkLife AI platform. You can restore your account using the same email and password."
+
+Section 2 — Security and login
+
+- A "Login with password" action, shown only when profile.hasPassword === false (Google-only users). Button reveals a form with password + confirm-password fields, calls api.account.setPassword(password, passwordConfirmation). On success, refresh the profile so hasPassword flips to true and this section updates. Handle the 409 "password already set" case with a clear error message.
+
+Section 3 — Sign-in methods
+
+- Email and password row with sub-title "Enable login with email". Show connected/enabled state driven by profile.hasPassword.
+- Google row:
+
+* If not connected: show "Connect your Google account" with a button that navigates to googleOAuthRedirectUrl via window.location.href.
+* If connected (signed in with Google): show the Gmail address as the sub-title. (Confirm formatUser() returns the Google email / connection state — if it doesn't yet, that's the one backend gap you may close; check before assuming.)
+
+
+Preserve all existing behavior: focus trap, the onPreventClose pattern during destructive confirmations, mobile tab layout, loading skeletons, and error/success styling. Only restructure AccountPanel and add the new section UI — the rest of the modal stays unchanged.
+When done, report the actual diff of SettingsModal.tsx so the UI changes are verifiable.
+
+----
+
 # Out Of Scope
 
 Do NOT implement:

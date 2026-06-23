@@ -348,7 +348,6 @@ function SidebarInner() {
   const [saving, setSaving] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFinePointer = useRef(false);
   const profileFetched = useRef(false);
@@ -365,18 +364,12 @@ function SidebarInner() {
   useEffect(() => {
     function onPointerDown(e: PointerEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        clearTimerRef(closeTimerRef);
-        clearTimerRef(submenuCloseTimerRef);
         setShowUserMenu(false);
         setActiveSubmenu(null);
       }
     }
     document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      clearTimerRef(closeTimerRef);
-      clearTimerRef(submenuCloseTimerRef);
-    };
+    return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
   // Esc → close submenu first, then main menu
@@ -431,20 +424,12 @@ function SidebarInner() {
   const initials = deriveInitials(userName);
 
   function openMenu() {
-    clearTimerRef(closeTimerRef);
     setShowUserMenu(true);
   }
 
   function closeMenu() {
-    clearTimerRef(closeTimerRef);
-    clearTimerRef(submenuCloseTimerRef);
     setShowUserMenu(false);
     setActiveSubmenu(null);
-  }
-
-  function scheduleClose() {
-    clearTimerRef(closeTimerRef);
-    closeTimerRef.current = setTimeout(() => setShowUserMenu(false), 200);
   }
 
   function computeAndSetFlip() {
@@ -651,8 +636,6 @@ function SidebarInner() {
         <div
           ref={userMenuRef}
           className="relative px-2 py-3 border-t border-neutral-border flex-shrink-0"
-          onPointerEnter={(e) => { if (e.pointerType !== "touch") openMenu(); }}
-          onPointerLeave={(e) => { if (e.pointerType !== "touch") scheduleClose(); }}
         >
           <button
             onClick={() => (showUserMenu ? closeMenu() : openMenu())}
@@ -662,7 +645,6 @@ function SidebarInner() {
             title={isCollapsed ? userName : undefined}
             className={[
               "w-full flex items-center gap-2.5 rounded-md",
-              "hover:bg-neutral-border/25 dark:hover:bg-white/5 transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
               isCollapsed ? "md:justify-center md:p-2 p-2" : "px-2 py-2",
             ].join(" ")}
