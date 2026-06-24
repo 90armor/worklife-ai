@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ProfileController extends Controller
@@ -24,12 +25,22 @@ class ProfileController extends Controller
 
     public function update(Request $request): JsonResponse
     {
+        $opts = config('profile_options');
+
         $validated = $request->validate([
             'fullName'          => 'sometimes|required|string|max:255',
+            // Nationality allows free-text via the "other" flow (the frontend sends the
+            // user's typed value, not the literal key "other"). Accepted: a known key OR
+            // any non-empty string up to the column limit (VARCHAR 100). Mirrors occupation.
             'nationality'       => 'sometimes|nullable|string|max:100',
-            'preferredLanguage' => 'sometimes|nullable|string|max:50',
+            // Accepts a known key or null; rejects unrecognised free-text.
+            'preferredLanguage' => ['sometimes', 'nullable', Rule::in($opts['preferred_language'])],
+            // Occupation allows free-text (the frontend sends the user's typed value, not "other",
+            // when they select the "Other" option). We accept any non-empty string up to max length
+            // rather than enforcing Rule::in(), so legacy data and custom entries are preserved.
             'occupation'        => 'sometimes|nullable|string|max:255',
-            'prefecture'        => 'sometimes|nullable|string|max:100',
+            // Accepts a known prefecture key or null; rejects unrecognised values.
+            'prefecture'        => ['sometimes', 'nullable', Rule::in($opts['prefecture'])],
         ]);
 
         /** @var User $user */

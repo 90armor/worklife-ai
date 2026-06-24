@@ -1,4 +1,4 @@
-const TOKEN_KEY = "worklife_token";
+export const TOKEN_KEY = "worklife_token";
 
 export const auth = {
   getToken(): string | null {

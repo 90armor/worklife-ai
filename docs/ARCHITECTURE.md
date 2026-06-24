@@ -122,6 +122,7 @@ Responsibilities:
 * Chat Interface
 * Document Upload
 * Guide Browsing
+* Internationalization (i18n)
 
 Pages:
 
@@ -130,6 +131,17 @@ Pages:
 * Ask AI
 * Workplace Guide
 * Profile
+
+## Internationalization
+
+The frontend uses **next-intl v3** for i18n.
+
+- Supported locales: `en` (default) and `ja`. Adding a new locale requires only a new message file under `messages/`.
+- Message files: `messages/en.json`, `messages/ja.json` — cover Settings field labels, dropdown option labels, and profile save/load messages.
+- Locale source: the `worklife_locale` cookie (defaults to `en`). A language-switcher UI is a follow-up task.
+- Config: `src/i18n/request.ts` (via `next-intl/server` → `getRequestConfig`), wired into Next.js via `createNextIntlPlugin` in `next.config.js`.
+- Provider: `NextIntlClientProvider` wraps the app in `src/app/layout.tsx`, enabling `useTranslations()` in client components.
+- **i18n is display-only.** The API always receives stable `value` keys (e.g. `"tokyo"`, `"caregiver"`), never translated labels.
 
 ---
 

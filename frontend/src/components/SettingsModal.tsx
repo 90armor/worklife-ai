@@ -6,17 +6,95 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 import { api, ApiError, Profile, ProfileInput, googleOAuthRedirectUrl } from "@/lib/api";
 import { useLogout } from "@/lib/useLogout";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import {
+  SelectOption,
+  NATIONALITY_OPTIONS,
+  LANGUAGE_OPTIONS,
+  OCCUPATION_OPTIONS,
+  PREFECTURE_OPTIONS,
+} from "@/lib/constants/profileOptions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Panel = "general" | "account";
+type FieldStatus = "idle" | "saving" | "saved" | "error";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// ── Field definitions ─────────────────────────────────────────────────────────
+
+type TextField = {
+  key: keyof ProfileInput;
+  i18nKey: string;
+  autoComplete: string;
+  type: "text";
+};
+
+type SelectField = {
+  key: keyof ProfileInput;
+  i18nKey: string;
+  autoComplete: string;
+  type: "select";
+  options: readonly SelectOption[];
+  optionsNs: string;
+  allowOther?: boolean;
+};
+
+type FieldDef = TextField | SelectField;
+
+const GENERAL_FIELDS: FieldDef[] = [
+  { key: "fullName", i18nKey: "fullName", autoComplete: "name", type: "text" },
+  {
+    key: "nationality",
+    i18nKey: "nationality",
+    autoComplete: "off",
+    type: "select",
+    options: NATIONALITY_OPTIONS,
+    optionsNs: "nationality",
+    allowOther: true,
+  },
+  {
+    key: "preferredLanguage",
+    i18nKey: "preferredLanguage",
+    autoComplete: "language",
+    type: "select",
+    options: LANGUAGE_OPTIONS,
+    optionsNs: "language",
+  },
+  {
+    key: "occupation",
+    i18nKey: "occupation",
+    autoComplete: "organization-title",
+    type: "select",
+    options: OCCUPATION_OPTIONS,
+    optionsNs: "occupation",
+    allowOther: true,
+  },
+  {
+    key: "prefecture",
+    i18nKey: "prefecture",
+    autoComplete: "address-level1",
+    type: "select",
+    options: PREFECTURE_OPTIONS,
+    optionsNs: "prefecture",
+  },
+];
+
+const emptyForm: ProfileInput = {
+  fullName: "",
+  nationality: "",
+  preferredLanguage: "",
+  occupation: "",
+  prefecture: "",
+};
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -56,13 +134,18 @@ function LogoutIcon() {
   );
 }
 
-function TrashIcon() {
+function ChevronDownIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14H6L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4h6v2" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -86,7 +169,6 @@ function useFocusTrap(
     if (!active || !ref.current) return;
     const el = ref.current;
 
-    // Focus the dialog itself so screen readers announce it
     el.focus();
 
     function onKeyDown(e: KeyboardEvent) {
@@ -113,39 +195,50 @@ function useFocusTrap(
   }, [ref, active]);
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isKnownValue(value: string, options: readonly SelectOption[]): boolean {
+  return options.some((o) => o.value === value);
+}
+
+// Maps a stored profile value to the select element's displayed value.
+// Unknown stored strings (legacy free-text) are shown as "other" so the
+// custom-text input becomes visible, preserving the data without crashing.
+function deriveSelectValue(stored: string, options: readonly SelectOption[]): string {
+  if (!stored) return "";
+  if (isKnownValue(stored, options)) return stored;
+  return "other";
+}
+
 // ── General panel ─────────────────────────────────────────────────────────────
-
-const GENERAL_FIELDS: {
-  key: keyof Omit<ProfileInput, never>;
-  label: string;
-  autoComplete: string;
-}[] = [
-  { key: "fullName", label: "Full name", autoComplete: "name" },
-  { key: "nationality", label: "Nationality", autoComplete: "off" },
-  { key: "preferredLanguage", label: "Preferred language", autoComplete: "language" },
-  { key: "occupation", label: "Occupation", autoComplete: "organization-title" },
-  { key: "prefecture", label: "Prefecture", autoComplete: "address-level1" },
-];
-
-const emptyForm: ProfileInput = {
-  fullName: "",
-  nationality: "",
-  preferredLanguage: "",
-  occupation: "",
-  prefecture: "",
-};
 
 interface GeneralPanelProps {
   onDirty: () => void;
 }
 
 function GeneralPanel({ onDirty }: GeneralPanelProps) {
+  const t = useTranslations("settings");
+  const tOpts = useTranslations("options");
+
+  // UI state: form holds select values (may be "other"); otherText holds free-text
   const [form, setForm] = useState<ProfileInput>(emptyForm);
+  const [otherText, setOtherText] = useState<Partial<Record<keyof ProfileInput, string>>>({});
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
+  // Per-field save status for inline indicators
+  const [fieldStatus, setFieldStatus] = useState<Partial<Record<keyof ProfileInput, FieldStatus>>>({});
+
+  // Last successfully persisted resolved values — used to skip no-op saves
+  const savedValues = useRef<Record<keyof ProfileInput, string>>({
+    fullName: "", nationality: "", preferredLanguage: "", occupation: "", prefecture: "",
+  });
+
+  // Per-field debounce timers (text inputs)
+  const debounceTimers = useRef<Partial<Record<keyof ProfileInput, ReturnType<typeof setTimeout>>>>({});
+  // Timers that revert "saved" → "idle" after a short delay
+  const clearSavedTimers = useRef<Partial<Record<keyof ProfileInput, ReturnType<typeof setTimeout>>>>({});
 
   useEffect(() => {
     setLoading(true);
@@ -153,117 +246,329 @@ function GeneralPanel({ onDirty }: GeneralPanelProps) {
       .get()
       .then((res: { success: boolean; data: Profile }) => {
         setEmail(res.data.email ?? "");
-        setForm({
+
+        const newForm: ProfileInput = {
           fullName: res.data.fullName ?? "",
-          nationality: res.data.nationality ?? "",
+          nationality: "",
           preferredLanguage: res.data.preferredLanguage ?? "",
-          occupation: res.data.occupation ?? "",
+          occupation: "",
           prefecture: res.data.prefecture ?? "",
-        });
+        };
+        const newOther: Partial<Record<keyof ProfileInput, string>> = {};
+
+        for (const field of GENERAL_FIELDS) {
+          if (field.type === "select" && field.allowOther) {
+            const raw = (res.data[field.key] as string | null) ?? "";
+            if (!raw || isKnownValue(raw, field.options)) {
+              newForm[field.key] = raw;
+              newOther[field.key] = "";
+            } else {
+              // Legacy free-text: show "other" in select, restore text in the input
+              newForm[field.key] = "other";
+              newOther[field.key] = raw === "other" ? "" : raw;
+            }
+          }
+        }
+
+        setForm(newForm);
+        setOtherText(newOther);
+
+        // Initialise savedValues with resolved values so first auto-save skips no-ops
+        savedValues.current = {
+          fullName: newForm.fullName,
+          nationality: newForm.nationality === "other"
+            ? (newOther.nationality ?? "")
+            : newForm.nationality,
+          preferredLanguage: newForm.preferredLanguage,
+          occupation: newForm.occupation === "other"
+            ? (newOther.occupation ?? "")
+            : newForm.occupation,
+          prefecture: newForm.prefecture,
+        };
       })
-      .catch(() => setError("Could not load profile. Please try again."))
+      .catch(() => setLoadError(t("messages.loadError")))
       .finally(() => setLoading(false));
+  }, [t]);
+
+  // Cleanup pending timers on unmount
+  useEffect(() => {
+    const dts = debounceTimers.current;
+    const cts = clearSavedTimers.current;
+    return () => {
+      Object.values(dts).forEach((id) => id && clearTimeout(id));
+      Object.values(cts).forEach((id) => id && clearTimeout(id));
+    };
   }, []);
 
-  function set(key: keyof ProfileInput, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setSuccess(false);
-    onDirty();
+  function setStatus(key: keyof ProfileInput, status: FieldStatus) {
+    setFieldStatus((prev) => ({ ...prev, [key]: status }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSuccess(false);
-    setSaving(true);
+  async function saveFieldWithValue(key: keyof ProfileInput, resolvedValue: string) {
+    // fullName is required — never send an empty value
+    if (key === "fullName" && !resolvedValue.trim()) return;
+    // Nothing changed since last successful save — skip the round-trip
+    if (resolvedValue === savedValues.current[key]) return;
+
+    if (clearSavedTimers.current[key]) clearTimeout(clearSavedTimers.current[key]);
+    setStatus(key, "saving");
+
     try {
-      await api.profile.update(form);
-      setSuccess(true);
+      await api.profile.update({ [key]: resolvedValue } as Partial<ProfileInput>);
+      savedValues.current[key] = resolvedValue;
+      setStatus(key, "saved");
+      // Auto-revert the "saved" badge to idle after 2.5 s
+      clearSavedTimers.current[key] = setTimeout(() => setStatus(key, "idle"), 2500);
     } catch {
-      setError("Failed to save profile. Please try again.");
-    } finally {
-      setSaving(false);
+      setStatus(key, "error");
     }
   }
 
-  const inputClass = [
-    "h-11 w-full rounded-md border border-neutral-border bg-surface px-3",
-    "text-body placeholder:text-muted/60 transition-all duration-150",
-    "focus:border-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
+  function scheduleFieldSave(key: keyof ProfileInput, resolvedValue: string, delayMs = 700) {
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+    debounceTimers.current[key] = setTimeout(
+      () => void saveFieldWithValue(key, resolvedValue),
+      delayMs,
+    );
+  }
+
+  // Select changed — save immediately unless "other" was chosen (wait for text input)
+  function handleSelectChange(key: keyof ProfileInput, newValue: string) {
+    setForm((prev) => ({ ...prev, [key]: newValue }));
+    setOtherText((prev) => ({ ...prev, [key]: "" }));
+    onDirty();
+
+    if (newValue !== "other") {
+      void saveFieldWithValue(key, newValue);
+    }
+    // If "other" is selected, the user must type in the free-text input — save fires there.
+  }
+
+  // Free-text ("other") changed — debounce the save
+  function handleOtherChange(key: keyof ProfileInput, newText: string) {
+    setOtherText((prev) => ({ ...prev, [key]: newText }));
+    onDirty();
+    scheduleFieldSave(key, newText.trim());
+  }
+
+  // Free-text blurred — cancel debounce and save immediately
+  function handleOtherBlur(key: keyof ProfileInput, currentText: string) {
+    if (debounceTimers.current[key]) {
+      clearTimeout(debounceTimers.current[key]);
+      delete debounceTimers.current[key];
+    }
+    void saveFieldWithValue(key, currentText.trim());
+  }
+
+  // Text input changed — debounce the save
+  function handleTextChange(key: keyof ProfileInput, newValue: string) {
+    setForm((prev) => ({ ...prev, [key]: newValue }));
+    onDirty();
+    scheduleFieldSave(key, newValue.trim());
+  }
+
+  // Text input blurred — cancel debounce and save immediately
+  function handleTextBlur(key: keyof ProfileInput, currentValue: string) {
+    if (debounceTimers.current[key]) {
+      clearTimeout(debounceTimers.current[key]);
+      delete debounceTimers.current[key];
+    }
+    void saveFieldWithValue(key, currentValue.trim());
+  }
+
+  // ── Per-field save status badge ───────────────────────────────────────────
+
+  function renderStatusBadge(key: keyof ProfileInput) {
+    const status = fieldStatus[key];
+    if (!status || status === "idle") return <span aria-live="polite" />;
+
+    return (
+      <span
+        role="status"
+        aria-live="polite"
+        className={[
+          "inline-flex items-center gap-1 text-[0.6875rem] font-medium",
+          status === "saving" ? "text-muted" : "",
+          status === "saved" ? "text-success-600" : "",
+          status === "error" ? "text-error-600" : "",
+        ].join(" ")}
+      >
+        {status === "saving" && t("messages.saving")}
+        {status === "saved" && (
+          <>
+            <CheckIcon />
+            {t("messages.fieldSaved")}
+          </>
+        )}
+        {status === "error" && t("messages.fieldError")}
+      </span>
+    );
+  }
+
+  // ── Load error ────────────────────────────────────────────────────────────
+
+  if (loadError) {
+    return (
+      <div>
+        <h2 className="text-base font-semibold text-heading mb-1">{t("panels.general")}</h2>
+        <p className="mt-4 text-sm text-error-600 bg-error-50 border border-error-200 rounded-md px-3 py-2">
+          {loadError}
+        </p>
+      </div>
+    );
+  }
+
+  // ── Shared inline control classes ─────────────────────────────────────────
+
+  const inlineInputClass = [
+    "bg-transparent border-0 text-sm text-left text-body placeholder:text-muted/40",
+    "min-w-0 w-full max-w-[200px]",
+    "focus:outline-none",
   ].join(" ");
+
+  const inlineSelectClass = [
+    "appearance-none bg-transparent border-0 text-sm text-right text-body cursor-pointer",
+    "max-w-[190px] w-full",
+    "focus:outline-none",
+  ].join(" ");
+
+  const rowClass = [
+    "flex items-center min-h-[52px] px-4 gap-4",
+    "hover:bg-primary-50/20 dark:hover:bg-white/[0.02] transition-colors duration-100",
+    "has-[:focus-visible]:bg-primary-50/30 dark:has-[:focus-visible]:bg-white/[0.03]",
+  ].join(" ");
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div>
-      <h2 className="text-base font-semibold text-heading mb-5">General</h2>
+      <h2 className="text-base font-semibold text-heading mb-0.5">{t("panels.general")}</h2>
+      <p className="text-[0.8125rem] text-muted mb-6">{t("generalSubtitle")}</p>
 
       {loading ? (
-        <div className="flex flex-col gap-4">
-          {GENERAL_FIELDS.map((f) => (
-            <div key={f.key} className="flex flex-col gap-1.5">
-              <div className="h-4 w-24 bg-neutral-border rounded animate-pulse" />
-              <div className="h-11 w-full bg-neutral-border rounded-md animate-pulse" />
+        /* Loading skeletons — row-shaped to match new layout */
+        <div className="rounded-lg border border-neutral-border overflow-hidden divide-y divide-neutral-border">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center px-4 py-3.5">
+              <div className="w-32 h-3.5 bg-neutral-border rounded animate-pulse flex-shrink-0" />
+              <div className="flex-1 flex justify-end">
+                <div className="w-28 h-3.5 bg-neutral-border/60 rounded animate-pulse" />
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Email — read-only */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8125rem] font-medium text-muted">
-              Email
-            </label>
-            <input
-              type="email"
-              disabled
-              value={email}
-              className={[inputClass, "opacity-60 cursor-not-allowed"].join(" ")}
-            />
+        /* One card, rows divided by hairlines — no per-field box borders */
+        <div className="rounded-lg border border-neutral-border overflow-hidden divide-y divide-neutral-border">
+
+          {/* ── Email — read-only row ── */}
+          <div className="flex items-center min-h-[52px] px-4 gap-4">
+            <span className="w-36 flex-shrink-0 text-sm font-medium text-body select-none">
+              {t("fields.email")}
+            </span>
+            <span className="flex-1 text-sm text-muted text-right truncate select-all pr-[22px]">
+              {email}
+            </span>
           </div>
 
-          {GENERAL_FIELDS.map(({ key, label, autoComplete }) => (
-            <div key={key} className="flex flex-col gap-1.5">
-              <label
-                htmlFor={`settings-${key}`}
-                className="text-[0.8125rem] font-medium text-muted"
-              >
-                {label}
-              </label>
-              <input
-                id={`settings-${key}`}
-                type="text"
-                required={key === "fullName"}
-                autoComplete={autoComplete}
-                value={form[key]}
-                onChange={(e) => set(key, e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          ))}
+          {/* ── Editable fields ── */}
+          {GENERAL_FIELDS.map((field) => {
+            const labelText = t(`fields.${field.i18nKey}`);
 
-          {error && (
-            <p className="text-sm text-error-600 bg-error-50 border border-error-200 rounded-md px-3 py-2">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p className="text-sm text-success-700 bg-success-50 border border-success-200 rounded-md px-3 py-2">
-              Profile saved.
-            </p>
-          )}
+            // ── Text field ──
+            if (field.type === "text") {
+              return (
+                <div key={field.key} className={rowClass}>
+                  <label
+                    htmlFor={`settings-${field.key}`}
+                    className="w-36 flex-shrink-0 text-sm font-medium text-body cursor-default"
+                  >
+                    {labelText}
+                  </label>
+                  <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                    {renderStatusBadge(field.key)}
+                    <div className="relative pr-[22px]">
+                      <input
+                        id={`settings-${field.key}`}
+                        type="text"
+                        autoComplete={field.autoComplete}
+                        value={form[field.key]}
+                        onChange={(e) => handleTextChange(field.key, e.target.value)}
+                        onBlur={(e) => handleTextBlur(field.key, e.target.value)}
+                        placeholder="—"
+                        className={inlineInputClass}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
-          <button
-            type="submit"
-            disabled={saving}
-            className={[
-              "mt-1 h-11 w-full rounded-md font-medium text-sm transition-all duration-150",
-              "bg-primary-600 text-white hover:bg-primary-800 active:scale-[0.98]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2",
-              "disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100",
-            ].join(" ")}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </form>
+            // ── Select field ──
+            const selectValue = deriveSelectValue(form[field.key], field.options);
+            const showOtherInput = field.allowOther && selectValue === "other";
+
+            return (
+              <div key={field.key}>
+                {/* Main row: label left, select+chevron right */}
+                <div className={rowClass}>
+                  <label
+                    htmlFor={`settings-${field.key}`}
+                    className="w-36 flex-shrink-0 text-sm font-medium text-body cursor-default"
+                  >
+                    {labelText}
+                  </label>
+                  <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                    {renderStatusBadge(field.key)}
+                    <div className="relative flex items-center pr-[22px]">
+                      <select
+                        id={`settings-${field.key}`}
+                        value={form[field.key]}
+                        autoComplete={field.autoComplete}
+                        onChange={(e) => handleSelectChange(field.key, e.target.value)}
+                        className={inlineSelectClass}
+                      >
+                        <option value="" disabled>
+                          {t("fields.placeholder")}
+                        </option>
+                        {field.options.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {tOpts.has(`${field.optionsNs}.${o.value}`)
+                              ? tOpts(`${field.optionsNs}.${o.value}`)
+                              : o.label}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-0 flex items-center text-muted">
+                        <ChevronDownIcon />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* "Other" sub-row: appears inline within the same field group */}
+                {showOtherInput && (
+                  <div className="flex items-center px-4 py-2.5 border-t border-neutral-border/50 bg-neutral-border/5 hover:bg-primary-50/20 dark:hover:bg-white/[0.02] has-[:focus-visible]:bg-primary-50/30 dark:has-[:focus-visible]:bg-white/[0.03] transition-colors duration-100">
+                    {/* Spacer aligns the input with the right column */}
+                    <div className="w-36 flex-shrink-0" aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={otherText[field.key] ?? ""}
+                      onChange={(e) => handleOtherChange(field.key, e.target.value)}
+                      onBlur={(e) => handleOtherBlur(field.key, e.target.value)}
+                      placeholder={t("fields.otherPlaceholder")}
+                      aria-label={`${labelText} — ${t("fields.otherPlaceholder")}`}
+                      className={[
+                        "flex-1 bg-transparent border-0 text-sm text-body text-left placeholder:text-muted/50",
+                        "focus:outline-none pr-[22px]",
+                      ].join(" ")}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -335,7 +640,6 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
   async function handleLogout() {
     setLoggingOut(true);
     await logout();
-    // redirect happens inside logout(); no need to reset state
   }
 
   async function handleDeleteConfirm() {
@@ -343,7 +647,6 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
     setDeleteStep("deleting");
     try {
       await api.account.delete();
-      // Token cleared by server; remove locally too before redirect
       await logout();
     } catch {
       setDeleteError("Failed to delete account. Please try again.");
@@ -444,8 +747,6 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
 
   return (
     <div>
-      {/* <h2 className="text-base font-semibold text-heading mb-5">Account</h2> */}
-
       {/* ── Section 1 — Account ── */}
       <section aria-labelledby="acct-s1">
         <h2 id="acct-s1" className={sectionHeading}>Account</h2>
@@ -511,48 +812,43 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
                   "disabled:opacity-60 disabled:cursor-not-allowed",
                 ].join(" ")}
               >
-                {/* <TrashIcon /> */}
                 Delete
               </button>
             </div>
           )}
 
           {(deleteStep === "confirm" || deleteStep === "deleting") && (
-            <div className="rounded-lg border border-error-300 bg-error-50 p-4 flex flex-col gap-3">
-              <p className="text-sm font-semibold text-error-700">Delete your account?</p>
-              <p className="text-sm text-error-600">
-                Your account will be soft-deleted. All your data is preserved and you can restore it later using the same email and password. This action cannot be undone from the app — contact support to permanently erase data.
-              </p>
+            <div className="rounded-lg border border-neutral-border bg-surface p-4 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-heading">Delete your account?</p>
+
+              <Alert variant="error">
+                Delete your account and associated data from the WorkLife AI platform. You can restore your account using the same email and password.
+              </Alert>
 
               {deleteError && (
-                <p className="text-sm text-error-700 font-medium">{deleteError}</p>
+                <Alert variant="error">{deleteError}</Alert>
               )}
 
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={cancelDelete}
                   disabled={deleteStep === "deleting"}
-                  className={[
-                    "flex-1 h-10 rounded-md border border-neutral-border bg-surface text-body text-sm font-medium",
-                    "hover:bg-neutral-border/40 transition-colors duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
-                    "disabled:opacity-60 disabled:cursor-not-allowed",
-                  ].join(" ")}
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={deleteStep === "deleting"}
                   onClick={handleDeleteConfirm}
                   disabled={deleteStep === "deleting"}
-                  className={[
-                    "flex-1 h-10 rounded-md bg-error-600 text-white text-sm font-medium",
-                    "hover:bg-error-700 transition-colors duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400 focus-visible:ring-offset-2",
-                    "disabled:opacity-60 disabled:cursor-not-allowed",
-                  ].join(" ")}
+                  className="flex-1 border-error-400 text-[var(--color-error-600)] hover:bg-[var(--color-error-50)]"
                 >
                   {deleteStep === "deleting" ? "Deleting…" : "Yes, delete my account"}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -675,9 +971,9 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
             </div>
             <span
               className={[
-                "text-xs font-medium px-2 py-0.5 rounded-full",
+                "text-xs font-medium px-2 py-1 rounded-md",
                 profile.hasPassword
-                  ? "text-success-700 bg-success-50"
+                  ? "text-[var(--color-success-900)] bg-[var(--color-success-50)]"
                   : "text-muted bg-neutral-border/40",
               ].join(" ")}
             >
@@ -691,6 +987,9 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
               <p className="text-sm font-medium text-body">Google</p>
               {profile.hasGoogleConnected && (
                 <p className="text-xs text-muted mt-0.5">{profile.email}</p>
+              )}
+              {!profile.hasGoogleConnected && (
+                <p className="text-xs text-muted mt-0.5">Connect your Google account</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1">
@@ -733,6 +1032,7 @@ function AccountPanel({ onPreventClose }: AccountPanelProps) {
 // ── Settings modal ─────────────────────────────────────────────────────────────
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const t = useTranslations("settings");
   const [activePanel, setActivePanel] = useState<Panel>("general");
   const [preventClose, setPreventClose] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -771,9 +1071,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const navBtnActive = "bg-primary-50 text-primary-800 dark:bg-primary-600/10 dark:text-primary-400 font-medium";
   const navBtnInactive = "text-body hover:bg-neutral-border/25 dark:hover:bg-white/5";
 
-  const NAV_ITEMS: { id: Panel; label: string; Icon: React.FC }[] = [
-    { id: "general", label: "General", Icon: UserIcon },
-    { id: "account", label: "Account", Icon: ShieldIcon },
+  const NAV_ITEMS: { id: Panel; labelKey: string; Icon: React.FC }[] = [
+    { id: "general", labelKey: "panels.general", Icon: UserIcon },
+    { id: "account", labelKey: "panels.account", Icon: ShieldIcon },
   ];
 
   return (
@@ -809,7 +1109,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-border flex-shrink-0">
             <h1 id="settings-modal-title" className="text-base font-semibold text-heading">
-              Settings
+              {t("title")}
             </h1>
             <button
               onClick={preventClose ? undefined : onClose}
@@ -833,7 +1133,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               aria-label="Settings sections"
               className="hidden md:flex flex-col gap-0.5 w-44 p-3 border-r border-neutral-border flex-shrink-0"
             >
-              {NAV_ITEMS.map(({ id, label, Icon }) => (
+              {NAV_ITEMS.map(({ id, labelKey, Icon }) => (
                 <button
                   key={id}
                   onClick={() => setActivePanel(id)}
@@ -844,7 +1144,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   ].join(" ")}
                 >
                   <Icon />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </nav>
@@ -855,7 +1155,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               aria-label="Settings sections"
               className="md:hidden absolute top-[57px] left-0 right-0 flex border-b border-neutral-border bg-card"
             >
-              {NAV_ITEMS.map(({ id, label }) => (
+              {NAV_ITEMS.map(({ id, labelKey }) => (
                 <button
                   key={id}
                   role="tab"
@@ -869,7 +1169,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       : "text-muted hover:text-body",
                   ].join(" ")}
                 >
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
