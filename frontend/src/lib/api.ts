@@ -142,6 +142,18 @@ export const api = {
       }),
   },
 
+  // Chat
+  chat: {
+    createSession: () =>
+      authedRequest<{ sessionId: string }>("/chat/sessions", { method: "POST" }),
+
+    sendMessage: (sessionId: string, message: string) =>
+      authedRequest<{ answer: string; sources: unknown[] }>("/chat/messages", {
+        method: "POST",
+        body: JSON.stringify({ sessionId, message }),
+      }),
+  },
+
   // Account management
   account: {
     delete: () =>

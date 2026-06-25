@@ -23,7 +23,7 @@ export function GoogleButton({ onClick, label, disabled }: GoogleButtonProps) {
       disabled={disabled}
       className="
         w-full h-[46px] rounded-full
-        border border-[var(--color-border)] bg-white dark:bg-card
+        border border-[var(--color-border)] bg-white dark:bg-surface-raised
         flex items-center justify-center gap-3
         text-body text-sm font-medium
         hover:bg-surface transition-all duration-150

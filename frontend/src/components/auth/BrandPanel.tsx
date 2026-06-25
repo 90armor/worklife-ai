@@ -1,6 +1,7 @@
 import { CitySkyline } from "./CitySkyline";
+import { ShieldIcon } from "@/components/ui/icons";
 
-// ── Inline icons ──────────────────────────────────────────────────────────────
+// ── Inline icons (unique to BrandPanel) ───────────────────────────────────────
 
 function CompassIcon() {
   return (
@@ -30,14 +31,6 @@ function BankIcon() {
       <line x1="14" y1="18" x2="14" y2="11" />
       <line x1="18" y1="18" x2="18" y2="11" />
       <polygon points="12 2 20 7 4 7" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
 }
@@ -138,7 +131,7 @@ function CardC() {
         {/* Cover */}
         <div className="bg-secondary-600 px-3 pt-3 pb-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-secondary-200"><ShieldIcon /></span>
+            <span className="text-secondary-200"><ShieldIcon size={12} /></span>
             <span className="text-[8px] font-bold tracking-widest uppercase text-secondary-200">
               Pension Notice
             </span>

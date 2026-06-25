@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { SendIcon, SparkleIcon } from "@/components/ui/icons";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -10,25 +11,6 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-function SendIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
-  );
-}
-
-function SparkleIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
-    </svg>
-  );
 }
 
 // ── Suggested prompts ─────────────────────────────────────────────────────────
@@ -40,7 +22,7 @@ const SUGGESTIONS = [
   "How do I open a bank account as a new resident?",
 ];
 
-// ── Chat inner (needs useSearchParams) ───────────────────────────────────────
+// ── Chat inner (needs useSearchParams) ────────────────────────────────────────
 
 function ChatPageInner() {
   const searchParams = useSearchParams();
@@ -49,20 +31,23 @@ function ChatPageInner() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // sessionId is created lazily on first message; null means not yet started
+  const sessionId = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Reset messages when conversation changes
+  // Reset conversation state when the URL conversation param changes
   useEffect(() => {
     setMessages([]);
     setInput("");
+    sessionId.current = null;
   }, [conversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-resize textarea
+  // Auto-resize textarea up to 160px
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -70,7 +55,7 @@ function ChatPageInner() {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [input]);
 
-  async function handleSend(text: string = input) {
+  const handleSend = useCallback(async (text: string = input) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
@@ -80,7 +65,13 @@ function ChatPageInner() {
     setLoading(true);
 
     try {
-      const res = await api.ask(trimmed);
+      // Create session on first message of a new conversation
+      if (!sessionId.current) {
+        const session = await api.chat.createSession();
+        sessionId.current = session.sessionId;
+      }
+
+      const res = await api.chat.sendMessage(sessionId.current, trimmed);
       const aiMsg: Message = { id: `a-${Date.now()}`, role: "assistant", content: res.answer };
       setMessages((prev) => [...prev, aiMsg]);
     } catch {
@@ -93,7 +84,7 @@ function ChatPageInner() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [input, loading]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -127,7 +118,7 @@ function ChatPageInner() {
                 <button
                   key={s}
                   onClick={() => handleSend(s)}
-                  className="text-left px-4 py-3 rounded-lg border border-neutral-border bg-card text-sm text-body hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-600/10 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 active:scale-[0.99]"
+                  className="text-left px-4 py-3 rounded-lg border border-neutral-border bg-surface-raised text-sm text-body hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-600/10 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 active:scale-[0.99]"
                 >
                   {s}
                 </button>
@@ -153,7 +144,7 @@ function ChatPageInner() {
                 <div className={[
                   "max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
                   msg.role === "assistant"
-                    ? "bg-card border border-neutral-border text-body rounded-tl-sm"
+                    ? "bg-surface-raised border border-neutral-border text-body rounded-tl-sm"
                     : "bg-primary-600 text-white rounded-tr-sm",
                 ].join(" ")}>
                   {msg.content}
@@ -161,14 +152,14 @@ function ChatPageInner() {
               </div>
             ))}
 
-            {/* Loading indicator */}
+            {/* Loading indicator — announced to screen readers */}
             {loading && (
-              <div className="flex gap-3 animate-fadeIn">
+              <div className="flex gap-3 animate-fadeIn" role="status" aria-label="WorkLife AI is thinking">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-medium">
                   W
                 </div>
-                <div className="bg-card border border-neutral-border px-4 py-3 rounded-2xl rounded-tl-sm">
-                  <div className="flex gap-1 items-center h-5">
+                <div className="bg-surface-raised border border-neutral-border px-4 py-3 rounded-2xl rounded-tl-sm">
+                  <div className="flex gap-1 items-center h-5" aria-hidden="true">
                     <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce [animation-delay:0ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce [animation-delay:150ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce [animation-delay:300ms]" />
@@ -182,7 +173,7 @@ function ChatPageInner() {
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 border-t border-neutral-border bg-card px-4 py-3">
+      <div className="flex-shrink-0 border-t border-neutral-border bg-surface-raised px-4 py-3">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-end gap-2 rounded-xl border border-neutral-border bg-surface px-3 py-2 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-400/20 transition-all duration-150">
             <textarea

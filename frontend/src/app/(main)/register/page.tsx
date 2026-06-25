@@ -3,35 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, googleOAuthRedirectUrl } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { FormInput, PasswordInput } from "@/components/ui/FormInput";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { GoogleButton } from "@/components/auth/GoogleButton";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "").replace("/api", "") ??
-  "http://localhost:8000";
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-function EyeIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -40,40 +18,7 @@ function isSoftDeletedConflict(err: unknown): boolean {
   return (err.body as { code?: string })?.code === "ACCOUNT_SOFT_DELETED";
 }
 
-function PasswordInput({
-  id, value, show, label, autoComplete = "current-password",
-  onChange, onToggle,
-}: Readonly<{
-  id: string; value: string; show: boolean; label: string;
-  autoComplete?: string;
-  onChange: (v: string) => void; onToggle: () => void;
-}>) {
-  const inputClass = [
-    "h-11 w-full rounded-md border border-[var(--color-border)] bg-card px-3 pr-10",
-    "text-body placeholder:text-muted/60 transition-all duration-150",
-    "focus:border-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
-  ].join(" ");
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[0.8125rem] font-medium text-muted">{label}</label>
-      <div className="relative">
-        <input
-          id={id} type={show ? "text" : "password"} required minLength={8}
-          autoComplete={autoComplete} placeholder="••••••••" value={value}
-          onChange={(e) => onChange(e.target.value)} className={inputClass}
-        />
-        <button type="button" onClick={onToggle}
-          aria-label={show ? "Hide password" : "Show password"}
-          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-r-md"
-        >
-          {show ? <EyeOffIcon /> : <EyeIcon />}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Sub-screens (extracted to keep RegisterForm complexity low) ───────────────
+// ── Sub-screens ───────────────────────────────────────────────────────────────
 
 function SoftDeletedChoiceScreen({ email, error, onRestore, onFresh, onBack }: Readonly<{
   email: string; error: string;
@@ -89,15 +34,19 @@ function SoftDeletedChoiceScreen({ email, error, onRestore, onFresh, onBack }: R
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
       <div className="flex flex-col gap-3">
-        <button onClick={onRestore}
-          className="flex h-[46px] w-full items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2">
+        <Button size="pill" fullWidth onClick={onRestore}>
           Restore my existing account
-        </button>
-        <button onClick={onFresh}
-          className="flex h-[46px] w-full items-center justify-center rounded-full border border-error-300 bg-error-50 text-sm font-medium text-error-700 transition-all hover:bg-error-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400 focus-visible:ring-offset-2">
+        </Button>
+        <button
+          onClick={onFresh}
+          className="flex h-[46px] w-full items-center justify-center rounded-pill border border-error-400 bg-error-50 text-sm font-medium text-error-600 transition-all hover:bg-error-50/80 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400 focus-visible:ring-offset-2"
+        >
           Start fresh with a new account
         </button>
-        <button onClick={onBack} className="text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm">
+        <button
+          onClick={onBack}
+          className="text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm"
+        >
           ← Use a different email
         </button>
       </div>
@@ -105,10 +54,10 @@ function SoftDeletedChoiceScreen({ email, error, onRestore, onFresh, onBack }: R
   );
 }
 
-function RestoreScreen({ email, error, loading, restorePwd, showPwd, onPwdChange, onToggle, onSubmit, onBack }: Readonly<{
+function RestoreScreen({ email, error, loading, restorePwd, onPwdChange, onSubmit, onBack }: Readonly<{
   email: string; error: string; loading: boolean;
-  restorePwd: string; showPwd: boolean;
-  onPwdChange: (v: string) => void; onToggle: () => void;
+  restorePwd: string;
+  onPwdChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void; onBack: () => void;
 }>) {
   return (
@@ -121,23 +70,33 @@ function RestoreScreen({ email, error, loading, restorePwd, showPwd, onPwdChange
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <PasswordInput id="restore-password" value={restorePwd} show={showPwd} label="Password" onChange={onPwdChange} onToggle={onToggle} />
-        <button type="submit" disabled={loading}
-          className="mt-1 flex h-[46px] w-full items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100">
-          {loading ? "Restoring…" : "Restore account"}
-        </button>
+        <PasswordInput
+          id="restore-password"
+          label="Password"
+          value={restorePwd}
+          autoComplete="current-password"
+          required
+          minLength={8}
+          onChange={onPwdChange}
+        />
+        <Button type="submit" size="pill" loading={loading} fullWidth className="mt-1">
+          Restore account
+        </Button>
       </form>
-      <button onClick={onBack} className="mt-4 text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm">
+      <button
+        onClick={onBack}
+        className="mt-4 text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm"
+      >
         ← Back
       </button>
     </AuthLayout>
   );
 }
 
-function FreshConfirmScreen({ email, error, loading, oldPwd, showOldPwd, onOldPwdChange, onToggle, onConfirm, onCancel }: Readonly<{
+function FreshConfirmScreen({ email, error, loading, oldPwd, onOldPwdChange, onConfirm, onCancel }: Readonly<{
   email: string; error: string; loading: boolean;
-  oldPwd: string; showOldPwd: boolean;
-  onOldPwdChange: (v: string) => void; onToggle: () => void;
+  oldPwd: string;
+  onOldPwdChange: (v: string) => void;
   onConfirm: () => void; onCancel: () => void;
 }>) {
   return (
@@ -145,26 +104,37 @@ function FreshConfirmScreen({ email, error, loading, oldPwd, showOldPwd, onOldPw
       <div className="mb-7">
         <h1 className="text-[1.375rem] font-medium leading-snug text-heading">Start fresh?</h1>
       </div>
-      <div className="rounded-lg border border-error-300 bg-error-50 p-4 mb-5">
-        <p className="text-sm font-semibold text-error-700 mb-1">This will permanently delete all previous data</p>
+      <div className="rounded-lg border border-error-400 bg-error-50 p-4 mb-5">
+        <p className="text-sm font-semibold text-error-600 mb-1">This will permanently delete all previous data</p>
         <p className="text-sm text-error-600">
           All documents, chat history, saved guides, and profile data linked to{" "}
           <strong>{email}</strong> will be erased and cannot be recovered.
         </p>
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
-      <div className="mb-5">
-        <PasswordInput id="old-password-fresh" value={oldPwd} show={showOldPwd} label="Confirm with your previous password" autoComplete="current-password" onChange={onOldPwdChange} onToggle={onToggle} />
+      <div className="flex flex-col gap-3 mb-5">
+        <PasswordInput
+          id="old-password-fresh"
+          label="Confirm with your previous password"
+          value={oldPwd}
+          autoComplete="current-password"
+          onChange={onOldPwdChange}
+        />
       </div>
       <div className="flex flex-col gap-3">
-        <button disabled={loading || !oldPwd} onClick={onConfirm}
-          className="flex h-[46px] w-full items-center justify-center rounded-full bg-error-600 text-sm font-medium text-white transition-all hover:bg-error-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100">
-          {loading ? "Creating account…" : "Yes, delete everything and start fresh"}
-        </button>
-        <button disabled={loading} onClick={onCancel}
-          className="flex h-[46px] w-full items-center justify-center rounded-full border border-neutral-border bg-surface text-sm font-medium text-body transition-all hover:bg-neutral-border/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:opacity-60">
+        <Button
+          size="pill"
+          variant="destructive"
+          fullWidth
+          loading={loading}
+          disabled={loading || !oldPwd}
+          onClick={onConfirm}
+        >
+          Yes, delete everything and start fresh
+        </Button>
+        <Button size="pill" variant="secondary" fullWidth disabled={loading} onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </AuthLayout>
   );
@@ -183,13 +153,10 @@ function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd]   = useState(false);
 
-  const [state, setState]                   = useState<SignupState>("form");
-  const [restorePwd, setRestorePwd]         = useState("");
-  const [showRestorePwd, setShowRestorePwd] = useState(false);
+  const [state, setState]             = useState<SignupState>("form");
+  const [restorePwd, setRestorePwd]   = useState("");
   const [oldPwdForFresh, setOldPwdForFresh] = useState("");
-  const [showOldPwdForFresh, setShowOldPwdForFresh] = useState(false);
 
   const [error, setError]   = useState(
     params.get("error") === "google_auth_failed"
@@ -202,7 +169,7 @@ function RegisterForm() {
     if (auth.isAuthenticated()) router.replace("/chat");
   }, [router]);
 
-  const handleGoogleSignIn = () => { globalThis.location.href = `${API_BASE}/auth/google/redirect`; };
+  const handleGoogleSignIn = () => { globalThis.location.href = googleOAuthRedirectUrl; };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -261,18 +228,12 @@ function RegisterForm() {
   }
 
   if (state === "restore") {
-    return <RestoreScreen email={email} error={error} loading={loading} restorePwd={restorePwd} showPwd={showRestorePwd} onPwdChange={setRestorePwd} onToggle={() => setShowRestorePwd((v) => !v)} onSubmit={handleRestore} onBack={() => goTo("soft_deleted")} />;
+    return <RestoreScreen email={email} error={error} loading={loading} restorePwd={restorePwd} onPwdChange={setRestorePwd} onSubmit={handleRestore} onBack={() => goTo("soft_deleted")} />;
   }
 
   if (state === "fresh_confirm") {
-    return <FreshConfirmScreen email={email} error={error} loading={loading} oldPwd={oldPwdForFresh} showOldPwd={showOldPwdForFresh} onOldPwdChange={setOldPwdForFresh} onToggle={() => setShowOldPwdForFresh((v) => !v)} onConfirm={handleFreshStart} onCancel={() => goTo("soft_deleted")} />;
+    return <FreshConfirmScreen email={email} error={error} loading={loading} oldPwd={oldPwdForFresh} onOldPwdChange={setOldPwdForFresh} onConfirm={handleFreshStart} onCancel={() => goTo("soft_deleted")} />;
   }
-
-  const inputClass = [
-    "h-11 w-full rounded-md border border-[var(--color-border)] bg-card px-3",
-    "text-body placeholder:text-muted/60 transition-all duration-150",
-    "focus:border-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
-  ].join(" ");
 
   return (
     <AuthLayout>
@@ -284,25 +245,42 @@ function RegisterForm() {
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="fullName" className="text-[0.8125rem] font-medium text-muted">Full name</label>
-          <input id="fullName" type="text" required autoComplete="name" placeholder="XXX" value={fullName}
-            onChange={(e) => setFullName(e.target.value)} className={inputClass} />
+        <FormInput
+          id="fullName"
+          label="Full name"
+          type="text"
+          required
+          autoComplete="name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
+
+        <FormInput
+          id="email"
+          label="Email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <div className="flex flex-col gap-1">
+          <PasswordInput
+            id="password"
+            label="Password"
+            value={password}
+            autoComplete="new-password"
+            required
+            minLength={8}
+            onChange={setPassword}
+          />
+          <p className="text-[0.8125rem] text-muted">Minimum 8 characters</p>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-[0.8125rem] font-medium text-muted">Email</label>
-          <input id="email" type="email" required autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-        </div>
-
-        <PasswordInput id="password" value={password} show={showPwd} label="Password" autoComplete="new-password" onChange={setPassword} onToggle={() => setShowPwd((v) => !v)} />
-        <p className="-mt-3 text-[0.8125rem] text-muted">Minimum 8 characters</p>
-
-        <button type="submit" disabled={loading}
-          className="mt-1 flex h-[46px] w-full items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100">
-          {loading ? "Creating account…" : "Sign up"}
-        </button>
+        <Button type="submit" size="pill" loading={loading} fullWidth className="mt-1">
+          Sign up
+        </Button>
       </form>
 
       <p className="mt-4 text-center text-[0.8125rem] text-muted">
@@ -313,9 +291,9 @@ function RegisterForm() {
       </p>
 
       <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <div className="h-px flex-1 bg-neutral-border" />
         <span className="shrink-0 text-[0.8125rem] text-muted">Or continue with</span>
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <div className="h-px flex-1 bg-neutral-border" />
       </div>
 
       <GoogleButton onClick={handleGoogleSignIn} label="Sign up with Google" disabled={loading} />
