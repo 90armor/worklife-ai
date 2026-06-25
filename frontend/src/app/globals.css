@@ -29,7 +29,7 @@
   --color-error-900: #501313;
 
   --color-surface: #F1EFE8;
-  --color-card: #FFFFFF;
+  --color-surface-raised: #FFFFFF;
   --color-border: #D3D1C7;
   --color-muted: #888780;
   --color-body: #444441;
@@ -42,9 +42,9 @@
 }
 
 /* ─── Dark mode token overrides ─────────────────────────────────────────── */
-.dark {
+[data-theme="dark"] {
   --color-surface: #1C1B18;
-  --color-card: #272520;
+  --color-surface-raised: #272520;
   --color-border: #3A3837;
   --color-muted: #7A786F;
   --color-body: #C8C6BE;

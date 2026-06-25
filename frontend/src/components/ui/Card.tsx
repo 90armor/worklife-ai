@@ -11,7 +11,7 @@ const paddingMap = { sm: "p-4", md: "p-6", lg: "p-8" };
 export function Card({ children, className = "", padding = "md" }: CardProps) {
   return (
     <div
-      className={`bg-card border border-neutral-border rounded-lg shadow-sm ${paddingMap[padding]} ${className}`}
+      className={`bg-surface-raised border border-neutral-border rounded-lg shadow-sm ${paddingMap[padding]} ${className}`}
     >
       {children}
     </div>

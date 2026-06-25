@@ -13,6 +13,11 @@ import React, {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
+import {
+  PlusIcon, SearchIcon, ChevronLeftIcon, ChevronRightIcon,
+  MenuIcon, ChatBubbleIcon, SettingsIcon, LogoutIcon,
+  GlobeIcon, SunIcon, MoonIcon, MonitorIcon, CheckIcon,
+} from "@/components/ui/icons";
 import { api } from "@/lib/api";
 import { useLogout } from "@/lib/useLogout";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -92,131 +97,6 @@ function groupConversations(items: Conversation[]): ConversationGroup[] {
   if (yesterday.length) groups.push({ label: "Yesterday", items: yesterday });
   if (week.length) groups.push({ label: "Previous 7 days", items: week });
   return groups;
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-function PlusIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function SearchIcon({ size = 14 }: Readonly<{ size?: number }>) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function ChatBubbleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  );
-}
-
-function GlobeIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" />
-      <line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  );
-}
-
-function MonitorIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -348,7 +228,6 @@ function SidebarInner() {
   const [saving, setSaving] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFinePointer = useRef(false);
   const profileFetched = useRef(false);
@@ -365,18 +244,12 @@ function SidebarInner() {
   useEffect(() => {
     function onPointerDown(e: PointerEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        clearTimerRef(closeTimerRef);
-        clearTimerRef(submenuCloseTimerRef);
         setShowUserMenu(false);
         setActiveSubmenu(null);
       }
     }
     document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      clearTimerRef(closeTimerRef);
-      clearTimerRef(submenuCloseTimerRef);
-    };
+    return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
   // Esc → close submenu first, then main menu
@@ -431,20 +304,12 @@ function SidebarInner() {
   const initials = deriveInitials(userName);
 
   function openMenu() {
-    clearTimerRef(closeTimerRef);
     setShowUserMenu(true);
   }
 
   function closeMenu() {
-    clearTimerRef(closeTimerRef);
-    clearTimerRef(submenuCloseTimerRef);
     setShowUserMenu(false);
     setActiveSubmenu(null);
-  }
-
-  function scheduleClose() {
-    clearTimerRef(closeTimerRef);
-    closeTimerRef.current = setTimeout(() => setShowUserMenu(false), 200);
   }
 
   function computeAndSetFlip() {
@@ -489,7 +354,7 @@ function SidebarInner() {
 
   // Shared submenu panel classes — flip to left when there's no room on the right
   const submenuPanel = [
-    "absolute top-0 min-w-[180px] rounded-lg border border-neutral-border bg-card shadow-lg overflow-hidden z-50 animate-slideUp",
+    "absolute top-0 min-w-[180px] rounded-lg border border-neutral-border bg-surface-raised shadow-lg overflow-hidden z-50 animate-slideUp",
     submenuFlipped ? "right-full mr-1.5" : "left-full ml-1.5",
   ].join(" ");
   const menuRowBase = [
@@ -515,7 +380,7 @@ function SidebarInner() {
         aria-label="Chat navigation"
         className={[
           "fixed top-0 left-0 z-40 h-screen flex flex-col select-none",
-          "bg-card border-r border-neutral-border",
+          "bg-surface-raised border-r border-neutral-border",
           "w-sidebar",
           isCollapsed ? "md:w-sidebar-rail" : "md:w-sidebar",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
@@ -651,8 +516,6 @@ function SidebarInner() {
         <div
           ref={userMenuRef}
           className="relative px-2 py-3 border-t border-neutral-border flex-shrink-0"
-          onPointerEnter={(e) => { if (e.pointerType !== "touch") openMenu(); }}
-          onPointerLeave={(e) => { if (e.pointerType !== "touch") scheduleClose(); }}
         >
           <button
             onClick={() => (showUserMenu ? closeMenu() : openMenu())}
@@ -662,7 +525,6 @@ function SidebarInner() {
             title={isCollapsed ? userName : undefined}
             className={[
               "w-full flex items-center gap-2.5 rounded-md",
-              "hover:bg-neutral-border/25 dark:hover:bg-white/5 transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400",
               isCollapsed ? "md:justify-center md:p-2 p-2" : "px-2 py-2",
             ].join(" ")}
@@ -687,7 +549,7 @@ function SidebarInner() {
               aria-label="User menu"
               className={[
                 // overflow-visible so absolute submenus escape the clipping box
-                "absolute bottom-full mb-1.5 rounded-lg border border-neutral-border bg-card shadow-lg overflow-visible z-50",
+                "absolute bottom-full mb-1.5 rounded-lg border border-neutral-border bg-surface-raised shadow-lg overflow-visible z-50",
                 "animate-slideUp min-w-[180px]",
                 isCollapsed ? "left-14" : "left-2 right-2",
               ].join(" ")}
@@ -785,11 +647,14 @@ function SidebarInner() {
                         onClick={() => setTheme(opt.value)}
                         className={[
                           menuRowBase,
+                          "justify-between",
                           theme === opt.value ? menuRowSelected : menuRowDefault,
                         ].join(" ")}
                       >
-                        <ThemeOptionIcon value={opt.value} />
-                        <span className="flex-1">{opt.label}</span>
+                        <span className="flex items-center gap-2.5">
+                          <ThemeOptionIcon value={opt.value} />
+                          <span>{opt.label}</span>
+                        </span>
                         {theme === opt.value && <CheckIcon />}
                       </button>
                     ))}

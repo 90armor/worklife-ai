@@ -2,8 +2,8 @@ import { ButtonHTMLAttributes, ReactNode } from "react";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost";
-  size?: "sm" | "md";
+  variant?: "primary" | "secondary" | "ghost" | "destructive";
+  size?: "sm" | "md" | "pill";
   loading?: boolean;
   fullWidth?: boolean;
   children: ReactNode;
@@ -13,12 +13,19 @@ const variantClasses = {
   primary:
     "bg-primary-600 text-white hover:bg-primary-800 dark:hover:bg-primary-400 active:scale-[0.98]",
   secondary:
-    "border border-neutral-border text-body bg-transparent hover:bg-surface dark:hover:bg-card active:scale-[0.98]",
+    "border border-neutral-border text-body bg-transparent hover:bg-surface dark:hover:bg-surface-raised active:scale-[0.98]",
   ghost:
     "text-body hover:text-heading bg-transparent active:scale-[0.98]",
+  destructive:
+    "bg-error-600 text-white hover:bg-error-900 active:scale-[0.98]",
 };
 
-const sizeClasses = { sm: "h-9 px-3 text-sm", md: "h-11 px-4 text-sm" };
+// pill size carries its own rounded-pill override — rounded-md on the base class is overridden
+const sizeClasses = {
+  sm: "h-9 px-3 text-sm",
+  md: "h-11 px-4 text-sm",
+  pill: "h-[46px] px-6 text-sm rounded-pill",
+};
 
 export function Button({
   variant = "primary",

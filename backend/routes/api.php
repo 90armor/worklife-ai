@@ -23,5 +23,8 @@ Route::prefix('v1')->group(function () {
         Route::get('profile',    [ProfileController::class, 'show']);
         Route::put('profile',    [ProfileController::class, 'update']);
         Route::delete('account', [ProfileController::class, 'destroy']);
+
+        Route::post('account/password', [ProfileController::class, 'setPassword']);
+        Route::delete('account/google', [ProfileController::class, 'disconnectGoogle']);
     });
 });

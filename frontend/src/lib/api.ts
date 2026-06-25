@@ -3,6 +3,12 @@ import { auth } from "@/lib/auth";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+
+// Google OAuth lives on the web router (no /api/v1 prefix)
+export const googleOAuthRedirectUrl = `${BACKEND_URL}/auth/google/redirect`;
+
 export interface SearchResult {
   id: number;
   title: string;
@@ -18,6 +24,8 @@ export interface Profile {
   preferredLanguage: string | null;
   occupation: string | null;
   prefecture: string | null;
+  hasPassword: boolean;
+  hasGoogleConnected: boolean;
 }
 
 export interface ProfileInput {
@@ -134,9 +142,30 @@ export const api = {
       }),
   },
 
+  // Chat
+  chat: {
+    createSession: () =>
+      authedRequest<{ sessionId: string }>("/chat/sessions", { method: "POST" }),
+
+    sendMessage: (sessionId: string, message: string) =>
+      authedRequest<{ answer: string; sources: unknown[] }>("/chat/messages", {
+        method: "POST",
+        body: JSON.stringify({ sessionId, message }),
+      }),
+  },
+
   // Account management
   account: {
     delete: () =>
       authedRequest<{ success: boolean }>("/account", { method: "DELETE" }),
+
+    setPassword: (password: string, passwordConfirmation: string) =>
+      authedRequest<{ success: boolean }>("/account/password", {
+        method: "POST",
+        body: JSON.stringify({ password, password_confirmation: passwordConfirmation }),
+      }),
+
+    disconnectGoogle: () =>
+      authedRequest<{ success: boolean }>("/account/google", { method: "DELETE" }),
   },
 };

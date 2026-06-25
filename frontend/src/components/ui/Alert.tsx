@@ -48,17 +48,19 @@ export function Alert({ variant, children, className = "" }: Readonly<AlertProps
   const { bg, border, text } = styles[variant];
   const base = `flex items-start gap-2 p-3 rounded-md text-sm ${bg} ${border} ${text} ${className}`;
 
+  // Errors are urgent — assertive live region announced immediately.
+  // All other variants are polite — announced at the next idle moment.
   if (variant === "error") {
     return (
-      <div role="alert" className={base}>
+      <div role="alert" aria-live="assertive" className={base}>
         {inner(icons.error, children)}
       </div>
     );
   }
 
   return (
-    <output className={base}>
+    <div role="status" aria-live="polite" className={base}>
       {inner(icons[variant], children)}
-    </output>
+    </div>
   );
 }

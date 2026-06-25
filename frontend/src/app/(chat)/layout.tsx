@@ -1,17 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { Sidebar, SidebarProvider, SidebarMobileToggle, useSidebar } from "@/components/Sidebar";
 
 function ChatLayoutInner({ children }: Readonly<{ children: React.ReactNode }>) {
-  const router = useRouter();
   const { isCollapsed } = useSidebar();
-
-  useEffect(() => {
-    if (!auth.isAuthenticated()) router.replace("/login");
-  }, [router]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -27,7 +19,7 @@ function ChatLayoutInner({ children }: Readonly<{ children: React.ReactNode }>) 
         ].join(" ")}
       >
         {/* Mobile top bar */}
-        <header className="md:hidden flex items-center gap-2 px-3 h-14 border-b border-neutral-border bg-card flex-shrink-0">
+        <header className="md:hidden flex items-center gap-2 px-3 h-14 border-b border-neutral-border bg-surface-raised flex-shrink-0">
           <SidebarMobileToggle />
           <span className="font-medium text-heading text-sm">WorkLife AI</span>
         </header>

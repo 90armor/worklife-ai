@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
+  darkMode: ["selector", '[data-theme="dark"]'],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -30,7 +30,7 @@ const config: Config = {
         info: { 50: "#E6F1FB", 600: "#378ADD", 900: "#042C53" },
         // Semantic tokens backed by CSS variables — swap automatically in dark mode
         surface: "var(--color-surface)",
-        card: "var(--color-card)",
+        "surface-raised": "var(--color-surface-raised)",
         "neutral-border": "var(--color-border)",
         muted: "var(--color-muted)",
         body: "var(--color-body)",

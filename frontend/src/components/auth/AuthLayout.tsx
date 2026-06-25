@@ -14,7 +14,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Form panel */}
-      <div className="flex-[1.05] flex items-center justify-center min-h-screen overflow-y-auto bg-white dark:bg-card py-12 px-6 md:px-10">
+      <div className="flex-[1.05] flex items-center justify-center min-h-screen overflow-y-auto bg-white dark:bg-surface-raised py-12 px-6 md:px-10">
         <div className="w-full max-w-sm animate-slideUp">
           {children}
         </div>
