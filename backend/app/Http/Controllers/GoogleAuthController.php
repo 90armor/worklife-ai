@@ -24,11 +24,20 @@ class GoogleAuthController extends Controller
             return redirect("{$frontendUrl}/login?error=google_auth_failed");
         }
 
+        $email = $googleUser->getEmail();
+
+        // firstOrCreate applies the SoftDeletes scope and would miss a soft-deleted
+        // row, hitting the unique index and throwing an unhandled QueryException.
+        // Redirect to register so the user can choose to restore or start fresh.
+        if (User::onlyTrashed()->where('email', $email)->exists()) {
+            return redirect("{$frontendUrl}/register?error=account_deleted");
+        }
+
         $user = User::firstOrCreate(
-            ['email' => $googleUser->getEmail()],
+            ['email' => $email],
             [
                 'id'        => (string) Str::uuid(),
-                'full_name' => $googleUser->getName() ?? $googleUser->getEmail(),
+                'full_name' => $googleUser->getName() ?? $email,
                 'google_id' => $googleUser->getId(),
                 'avatar_url' => $googleUser->getAvatar(),
             ]

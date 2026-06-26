@@ -210,3 +210,61 @@ Decision: On `forceDelete()` ("start fresh"), `feedbacks` and `ai_processing_log
 **Rationale:** These are analytics/audit rows. With `user_id` nulled they contain no directly identifying data — they are effectively anonymised. Retaining them is standard practice for aggregate metrics.
 
 **GDPR / erasure caveat:** `feedbacks.comment` is a free-text field that *could* contain personal information typed by the user. If the product makes an explicit "all personal data permanently deleted" promise, feedback comment text should also be cleared on hard delete. This is not implemented in the MVP; add a `$user->feedbacks()->update(['comment' => null])` step before `forceDelete()` if erasure compliance is required.
+
+---
+
+## DEC-017 — Frontend string catalog as i18n seam (hardening of TASK-004/005)
+
+Date: 2026-06-26
+
+### Context
+The auth surfaces (register, login, OAuth callback, and the soft-delete sub-screens) render **before** a user is authenticated, so no `preferredLanguage` preference is available. All user-facing strings in those surfaces were hardcoded inline English literals scattered across the components.
+
+### Decision
+Centralize English source strings into a plain typed object (`MESSAGES` in `frontend/src/lib/constants/messages.ts`) as the **i18n seam**: no library, no context provider, no hooks — just a `const` object grouped by feature area. Auth surfaces were prioritized because they render pre-login before any locale preference is known.
+
+**What moved:** All inline English literals in `register/page.tsx`, `login/page.tsx`, and `auth/callback/page.tsx` — error messages, headings, button labels, field labels, divider text, and nav links — are now references to `MESSAGES.auth.*`. JSX-interpolated strings (subtitles containing `<strong>{email}</strong>`) are split into `…Pre` / `…Post` key pairs so the JSX structure is preserved without template functions.
+
+**Behaviour/styling/architecture:** Unchanged. The rendered English text is byte-identical to before. No logic, Tailwind classes, a11y attributes, or URL-contract param keys (`google_auth_failed`, `account_deleted`) were modified.
+
+**Catalog shape:** A flat object today; a future pass can wrap it as `messages[locale]` for per-language lookup without changing call sites.
+
+### Explicitly deferred
+
+| Item | Reason |
+|---|---|
+| Backend `AuthController` JSON error messages (`"Invalid credentials."` etc.) | API responses; the correct pattern is for the frontend to map error *codes* → localized strings rather than trusting server copy. Requires a separate error-code contract with the backend. |
+| `AccountPanel.tsx` strings | Authenticated surface; `preferredLanguage` is available post-login. `MESSAGES.account.*` keys already exist in the catalog but `AccountPanel` does not yet import them — wiring that up is a follow-up. |
+| `SettingsModal` / `GeneralPanel` | Already use `next-intl` `useTranslations()` + `messages/*.json`; no change needed. |
+| Actual translations (ja, vi, etc.) | Out of scope; the seam is the prerequisite. |
+| Locale routing / `next-intl` for auth surfaces | Out of scope per AGENT_RULES Rule 1 & 4. |
+
+> **Superseded by DEC-018.** The standalone `MESSAGES.auth` catalog was a transient artifact; auth surfaces were immediately consolidated onto next-intl in the same hardening pass.
+
+---
+
+## DEC-018 — Auth surfaces consolidated onto next-intl; MESSAGES.auth catalog retired
+
+Date: 2026-06-26
+
+### Pre-login locale behaviour (confirmed)
+
+`src/i18n/request.ts` resolves locale from the **`worklife_locale` cookie**, defaulting to `"en"`. `NextIntlClientProvider` is mounted in the **root layout** (`src/app/layout.tsx`), unconditionally wrapping all routes including `(main)/register`, `(main)/login`, and `(main)/auth/callback`. Auth pages receive `"en"` for a first-time visitor (no cookie set), and the user's last chosen language on return visits. No blocker; the provider already covered auth routes before this change.
+
+### Decision
+
+The `MESSAGES.auth` plain-object catalog introduced in DEC-017 was a parallel i18n system running alongside the existing `next-intl` setup. Rather than maintain two systems, auth strings were migrated into `messages/en.json` and `messages/ja.json` under a new `"auth"` namespace, and the three auth files (`register/page.tsx`, `login/page.tsx`, `auth/callback/page.tsx`) now use `useTranslations("auth")` — the same hook `SettingsModal` and `GeneralPanel` already use.
+
+**Key implementation notes:**
+- The three JSX-interpolated subtitle strings (soft-delete, restore, fresh-confirm warning body) that were split into `…Pre`/`…Post` key pairs are now single keys using next-intl's `t.rich()` with `<strong>{email}</strong>` tag syntax. This is cleaner and semantically correct.
+- The `MESSAGES.ts` constants file was deleted entirely — `MESSAGES.profile` and `MESSAGES.account` had zero import sites in addition to `MESSAGES.auth`.
+- URL-param contracts (`google_auth_failed`, `account_deleted`) are unchanged; only the English text they map to moved into JSON.
+- Japanese translations were added for all auth keys. Two strings left as English copies pending a native-speaker review: `register.subtitle` ("Start understanding your life in Japan." — marketing copy) and `login.subtitle` ("Log in to your WorkLife AI account." — product name embedded).
+
+### Remaining deferred items (from DEC-017)
+
+| Item | Status |
+|---|---|
+| Backend `AuthController` JSON error messages | Still deferred — requires error-code contract with backend |
+| `AccountPanel.tsx` hardcoded strings | Still deferred — authenticated surface, follow-up task |
+| Actual translations beyond en/ja | Still deferred |

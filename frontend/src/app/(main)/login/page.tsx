@@ -10,18 +10,20 @@ import { Button } from "@/components/ui/Button";
 import { FormInput, PasswordInput } from "@/components/ui/FormInput";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { GoogleButton } from "@/components/auth/GoogleButton";
+import { useTranslations } from "next-intl";
 
 // ── Login form ────────────────────────────────────────────────────────────────
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations("auth");
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState(
     params.get("error") === "google_auth_failed"
-      ? "Google sign-in was cancelled or failed. Please try again."
+      ? t("errors.googleSignInFailed")
       : ""
   );
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,7 @@ function LoginForm() {
       auth.setToken(res.accessToken);
       router.push("/chat");
     } catch {
-      setError("Incorrect email or password. Please try again.");
+      setError(t("errors.incorrectEmailOrPassword"));
     } finally {
       setLoading(false);
     }
@@ -55,10 +57,10 @@ function LoginForm() {
       {/* ── Heading ── */}
       <div className="mb-8">
         <h1 className="text-[1.5rem] font-semibold leading-tight text-heading">
-          Welcome back
+          {t("login.title")}
         </h1>
         <p className="mt-1.5 text-sm text-muted">
-          Log in to your WorkLife AI account.
+          {t("login.subtitle")}
         </p>
       </div>
 
@@ -72,14 +74,14 @@ function LoginForm() {
       {/* ── Social login (above fold, primary entry point) ── */}
       <GoogleButton
         onClick={handleGoogleSignIn}
-        label="Continue with Google"
+        label={t("login.continueWithGoogle")}
         disabled={loading}
       />
 
       {/* ── Divider ── */}
       <div className="my-5 flex items-center gap-3">
         <div className="h-px flex-1 bg-neutral-border" />
-        <span className="shrink-0 text-[0.8125rem] text-muted">or sign in with email</span>
+        <span className="shrink-0 text-[0.8125rem] text-muted">{t("login.orSignInWithEmail")}</span>
         <div className="h-px flex-1 bg-neutral-border" />
       </div>
 
@@ -87,36 +89,36 @@ function LoginForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <FormInput
           id="email"
-          label="Email"
+          label={t("shared.emailLabel")}
           type="email"
           required
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("shared.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <PasswordInput
           id="password"
-          label="Password"
+          label={t("shared.passwordLabel")}
           value={password}
           autoComplete="current-password"
           onChange={setPassword}
         />
 
         <Button type="submit" size="pill" loading={loading} fullWidth className="mt-1">
-          Log in
+          {t("login.loginButton")}
         </Button>
       </form>
 
       {/* ── Account switcher ── */}
       <p className="mt-6 text-center text-[0.8125rem] text-muted">
-        Don&apos;t have an account?{" "}
+        {t("login.noAccount")}{" "}
         <Link
           href="/register"
           className="font-semibold text-primary-600 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm"
         >
-          Create one free
+          {t("login.createOneFree")}
         </Link>
       </p>
 

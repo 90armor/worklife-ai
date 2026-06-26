@@ -1,4 +1,64 @@
 {
+  "auth": {
+    "errors": {
+      "googleSignInFailed": "Googleサインインがキャンセルされたか失敗しました。もう一度お試しください。",
+      "accountPreviouslyDeleted": "このアカウントは以前削除されました。メールアドレスを入力してアカウントを復元するか、新しく始めてください。",
+      "couldNotCreateAccount": "アカウントを作成できませんでした。このメールアドレスはすでに使用されている可能性があります。",
+      "incorrectPassword": "パスワードが正しくありません。もう一度お試しください。",
+      "incorrectPreviousPassword": "以前のパスワードが正しくありません。もう一度お試しください。",
+      "couldNotCreateAccountRetry": "アカウントを作成できませんでした。もう一度お試しください。",
+      "incorrectEmailOrPassword": "メールアドレスまたはパスワードが正しくありません。もう一度お試しください。"
+    },
+    "shared": {
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "パスワード"
+    },
+    "callback": {
+      "signingIn": "サインイン中…"
+    },
+    "register": {
+      "title": "アカウントを作成",
+      "subtitle": "Start understanding your life in Japan.",
+      "fullNameLabel": "フルネーム",
+      "passwordHint": "8文字以上",
+      "signUpButton": "登録",
+      "alreadyHaveAccount": "すでにアカウントをお持ちですか？",
+      "signInLink": "サインイン",
+      "orContinueWith": "または",
+      "signUpWithGoogle": "Googleで登録"
+    },
+    "login": {
+      "title": "おかえりなさい",
+      "subtitle": "Log in to your WorkLife AI account.",
+      "continueWithGoogle": "Googleで続ける",
+      "orSignInWithEmail": "またはメールでサインイン",
+      "loginButton": "ログイン",
+      "noAccount": "アカウントをお持ちでないですか？",
+      "createOneFree": "無料で作成"
+    },
+    "softDeleted": {
+      "title": "アカウントが見つかりました",
+      "subtitle": "<strong>{email}</strong>の削除済みアカウントが見つかりました。どのように続けますか？",
+      "restoreButton": "既存のアカウントを復元する",
+      "startFreshButton": "新しいアカウントで始める",
+      "useDifferentEmail": "← 別のメールアドレスを使用する"
+    },
+    "restore": {
+      "title": "アカウントを復元",
+      "subtitle": "<strong>{email}</strong>のパスワードを入力して、アカウントとすべての過去のデータを復元してください。",
+      "restoreButton": "アカウントを復元",
+      "backButton": "← 戻る"
+    },
+    "freshConfirm": {
+      "title": "新しく始めますか？",
+      "warningHeading": "すべての過去のデータが完全に削除されます",
+      "warningBody": "<strong>{email}</strong>に紐づくすべてのドキュメント、チャット履歴、保存済みガイド、プロフィールデータが消去され、復元できなくなります。",
+      "confirmPasswordLabel": "以前のパスワードで確認",
+      "deleteButton": "はい、すべて削除して新しく始める",
+      "cancelButton": "キャンセル"
+    }
+  },
   "settings": {
     "title": "設定",
     "panels": {

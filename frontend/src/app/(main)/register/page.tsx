@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { FormInput, PasswordInput } from "@/components/ui/FormInput";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { GoogleButton } from "@/components/auth/GoogleButton";
+import { useTranslations } from "next-intl";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -24,30 +25,34 @@ function SoftDeletedChoiceScreen({ email, error, onRestore, onFresh, onBack }: R
   email: string; error: string;
   onRestore: () => void; onFresh: () => void; onBack: () => void;
 }>) {
+  const t = useTranslations("auth");
   return (
     <AuthLayout>
       <div className="mb-7">
-        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">Account found</h1>
+        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">{t("softDeleted.title")}</h1>
         <p className="mt-1 text-sm text-muted">
-          A deleted account exists for <strong className="text-body">{email}</strong>. Choose how to proceed.
+          {t.rich("softDeleted.subtitle", {
+            email,
+            strong: (chunks) => <strong className="text-body">{chunks}</strong>,
+          })}
         </p>
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
       <div className="flex flex-col gap-3">
         <Button size="pill" fullWidth onClick={onRestore}>
-          Restore my existing account
+          {t("softDeleted.restoreButton")}
         </Button>
         <button
           onClick={onFresh}
           className="flex h-[46px] w-full items-center justify-center rounded-pill border border-error-400 bg-error-50 text-sm font-medium text-error-600 transition-all hover:bg-error-50/80 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400 focus-visible:ring-offset-2"
         >
-          Start fresh with a new account
+          {t("softDeleted.startFreshButton")}
         </button>
         <button
           onClick={onBack}
           className="text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm"
         >
-          ← Use a different email
+          {t("softDeleted.useDifferentEmail")}
         </button>
       </div>
     </AuthLayout>
@@ -60,19 +65,23 @@ function RestoreScreen({ email, error, loading, restorePwd, onPwdChange, onSubmi
   onPwdChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void; onBack: () => void;
 }>) {
+  const t = useTranslations("auth");
   return (
     <AuthLayout>
       <div className="mb-7">
-        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">Restore your account</h1>
+        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">{t("restore.title")}</h1>
         <p className="mt-1 text-sm text-muted">
-          Enter the password for <strong className="text-body">{email}</strong> to restore your account and all previous data.
+          {t.rich("restore.subtitle", {
+            email,
+            strong: (chunks) => <strong className="text-body">{chunks}</strong>,
+          })}
         </p>
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <PasswordInput
           id="restore-password"
-          label="Password"
+          label={t("shared.passwordLabel")}
           value={restorePwd}
           autoComplete="current-password"
           required
@@ -80,14 +89,14 @@ function RestoreScreen({ email, error, loading, restorePwd, onPwdChange, onSubmi
           onChange={onPwdChange}
         />
         <Button type="submit" size="pill" loading={loading} fullWidth className="mt-1">
-          Restore account
+          {t("restore.restoreButton")}
         </Button>
       </form>
       <button
         onClick={onBack}
         className="mt-4 text-sm text-muted hover:text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm"
       >
-        ← Back
+        {t("restore.backButton")}
       </button>
     </AuthLayout>
   );
@@ -99,23 +108,26 @@ function FreshConfirmScreen({ email, error, loading, oldPwd, onOldPwdChange, onC
   onOldPwdChange: (v: string) => void;
   onConfirm: () => void; onCancel: () => void;
 }>) {
+  const t = useTranslations("auth");
   return (
     <AuthLayout>
       <div className="mb-7">
-        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">Start fresh?</h1>
+        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">{t("freshConfirm.title")}</h1>
       </div>
       <div className="rounded-lg border border-error-400 bg-error-50 p-4 mb-5">
-        <p className="text-sm font-semibold text-error-600 mb-1">This will permanently delete all previous data</p>
+        <p className="text-sm font-semibold text-error-600 mb-1">{t("freshConfirm.warningHeading")}</p>
         <p className="text-sm text-error-600">
-          All documents, chat history, saved guides, and profile data linked to{" "}
-          <strong>{email}</strong> will be erased and cannot be recovered.
+          {t.rich("freshConfirm.warningBody", {
+            email,
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </p>
       </div>
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
       <div className="flex flex-col gap-3 mb-5">
         <PasswordInput
           id="old-password-fresh"
-          label="Confirm with your previous password"
+          label={t("freshConfirm.confirmPasswordLabel")}
           value={oldPwd}
           autoComplete="current-password"
           onChange={onOldPwdChange}
@@ -130,10 +142,10 @@ function FreshConfirmScreen({ email, error, loading, oldPwd, onOldPwdChange, onC
           disabled={loading || !oldPwd}
           onClick={onConfirm}
         >
-          Yes, delete everything and start fresh
+          {t("freshConfirm.deleteButton")}
         </Button>
         <Button size="pill" variant="secondary" fullWidth disabled={loading} onClick={onCancel}>
-          Cancel
+          {t("freshConfirm.cancelButton")}
         </Button>
       </div>
     </AuthLayout>
@@ -149,6 +161,7 @@ type SignupState = "form" | "soft_deleted" | "restore" | "fresh_confirm";
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations("auth");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail]       = useState("");
@@ -158,11 +171,12 @@ function RegisterForm() {
   const [restorePwd, setRestorePwd]   = useState("");
   const [oldPwdForFresh, setOldPwdForFresh] = useState("");
 
-  const [error, setError]   = useState(
-    params.get("error") === "google_auth_failed"
-      ? "Google sign-in was cancelled or failed. Please try again."
-      : ""
-  );
+  const [error, setError]   = useState(() => {
+    const e = params.get("error");
+    if (e === "google_auth_failed") return t("errors.googleSignInFailed");
+    if (e === "account_deleted")    return t("errors.accountPreviouslyDeleted");
+    return "";
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -182,7 +196,7 @@ function RegisterForm() {
       router.push("/chat");
     } catch (err) {
       if (isSoftDeletedConflict(err)) { setState("soft_deleted"); }
-      else { setError("Could not create account. The email may already be in use."); }
+      else { setError(t("errors.couldNotCreateAccount")); }
     } finally {
       setLoading(false);
     }
@@ -197,7 +211,7 @@ function RegisterForm() {
       auth.setToken(res.accessToken);
       router.push("/chat");
     } catch {
-      setError("Incorrect password. Please try again.");
+      setError(t("errors.incorrectPassword"));
     } finally {
       setLoading(false);
     }
@@ -213,8 +227,8 @@ function RegisterForm() {
       router.push("/chat");
     } catch (err) {
       const msg = err instanceof ApiError && err.status === 401
-        ? "Incorrect previous password. Please try again."
-        : "Could not create account. Please try again.";
+        ? t("errors.incorrectPreviousPassword")
+        : t("errors.couldNotCreateAccountRetry");
       setError(msg);
     } finally {
       setLoading(false);
@@ -238,8 +252,8 @@ function RegisterForm() {
   return (
     <AuthLayout>
       <div className="mb-7">
-        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">Create your account</h1>
-        <p className="mt-1 text-sm text-muted">Start understanding your life in Japan.</p>
+        <h1 className="text-[1.375rem] font-medium leading-snug text-heading">{t("register.title")}</h1>
+        <p className="mt-1 text-sm text-muted">{t("register.subtitle")}</p>
       </div>
 
       {error && <Alert variant="error" className="mb-5">{error}</Alert>}
@@ -247,7 +261,7 @@ function RegisterForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <FormInput
           id="fullName"
-          label="Full name"
+          label={t("register.fullNameLabel")}
           type="text"
           required
           autoComplete="name"
@@ -257,7 +271,7 @@ function RegisterForm() {
 
         <FormInput
           id="email"
-          label="Email"
+          label={t("shared.emailLabel")}
           type="email"
           required
           autoComplete="email"
@@ -268,35 +282,35 @@ function RegisterForm() {
         <div className="flex flex-col gap-1">
           <PasswordInput
             id="password"
-            label="Password"
+            label={t("shared.passwordLabel")}
             value={password}
             autoComplete="new-password"
             required
             minLength={8}
             onChange={setPassword}
           />
-          <p className="text-[0.8125rem] text-muted">Minimum 8 characters</p>
+          <p className="text-[0.8125rem] text-muted">{t("register.passwordHint")}</p>
         </div>
 
         <Button type="submit" size="pill" loading={loading} fullWidth className="mt-1">
-          Sign up
+          {t("register.signUpButton")}
         </Button>
       </form>
 
       <p className="mt-4 text-center text-[0.8125rem] text-muted">
-        Already have an account?{" "}
+        {t("register.alreadyHaveAccount")}{" "}
         <Link href="/login" className="font-medium text-primary-600 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-sm">
-          Sign in
+          {t("register.signInLink")}
         </Link>
       </p>
 
       <div className="my-5 flex items-center gap-3">
         <div className="h-px flex-1 bg-neutral-border" />
-        <span className="shrink-0 text-[0.8125rem] text-muted">Or continue with</span>
+        <span className="shrink-0 text-[0.8125rem] text-muted">{t("register.orContinueWith")}</span>
         <div className="h-px flex-1 bg-neutral-border" />
       </div>
 
-      <GoogleButton onClick={handleGoogleSignIn} label="Sign up with Google" disabled={loading} />
+      <GoogleButton onClick={handleGoogleSignIn} label={t("register.signUpWithGoogle")} disabled={loading} />
     </AuthLayout>
   );
 }

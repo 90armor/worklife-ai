@@ -71,12 +71,22 @@ class AuthController extends Controller
 
     private function createUser(array $validated): JsonResponse
     {
-        $user = User::create([
-            'id'            => (string) Str::uuid(),
-            'email'         => $validated['email'],
-            'password_hash' => Hash::make($validated['password']),
-            'full_name'     => $validated['fullName'],
-        ]);
+        try {
+            $user = User::create([
+                'id'            => (string) Str::uuid(),
+                'email'         => $validated['email'],
+                'password_hash' => Hash::make($validated['password']),
+                'full_name'     => $validated['fullName'],
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // SQLSTATE 23505 = PostgreSQL unique_violation. Guards the race where two
+            // simultaneous register requests for a brand-new email both pass the
+            // withTrashed() check and the second INSERT hits the unique index.
+            if ($e->getCode() === '23505') {
+                return response()->json(['success' => false, 'message' => 'The email address is already in use.'], 422);
+            }
+            throw $e;
+        }
 
         return response()->json(['success' => true, 'userId' => $user->id], 201);
     }
