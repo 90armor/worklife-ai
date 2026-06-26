@@ -354,7 +354,7 @@ function SidebarInner() {
 
   // Shared submenu panel classes — flip to left when there's no room on the right
   const submenuPanel = [
-    "absolute top-0 min-w-[180px] rounded-lg border border-neutral-border bg-surface-raised shadow-lg overflow-hidden z-50 animate-slideUp",
+    "absolute bottom-0 min-w-[180px] rounded-lg border border-neutral-border bg-surface-raised shadow-lg overflow-hidden z-50 animate-slideUp",
     submenuFlipped ? "right-full mr-1.5" : "left-full ml-1.5",
   ].join(" ");
   const menuRowBase = [
