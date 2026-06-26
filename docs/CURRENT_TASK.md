@@ -4,7 +4,7 @@
 
 Sprint: MVP Foundation
 
-Status: IN PROGRESS
+Status: M1 COMPLETE — all foundation tasks verified done as of 2026-06-26. Ready to begin M2 (Document Explainer).
 
 ---
 
@@ -51,7 +51,7 @@ Title:
 Initialize Frontend
 
 Status:
-TODO
+DONE — Next.js 14.2.5, TypeScript, App Router, Tailwind CSS 3.4, ESLint configured. Frontend runs locally.
 
 Requirements:
 
@@ -75,7 +75,7 @@ Title:
 Initialize Backend
 
 Status:
-TODO
+DONE — Laravel (latest), PostgreSQL connection configured, API structure in place under /api/v1.
 
 Requirements:
 
@@ -96,7 +96,7 @@ Title:
 Database Setup
 
 Status:
-TODO
+DONE — 10 migrations present (users, guides, documents, chat_sessions, chat_messages, knowledge_chunks, saved_guides, feedbacks, ai_processing_logs, soft_deletes on users). Seeders: DatabaseSeeder, GuideSeeder, KnowledgeChunkSeeder, UserSeeder.
 
 Requirements:
 
@@ -163,7 +163,7 @@ Title:
 Language & Appearance Settings (Profile Avatar Menu)
 
 Status:
-TODO
+DONE — Language (flyout submenu, persists via PUT /profile) and Appearance (Light/Dark/System theme toggle) added to avatar dropdown in Sidebar.tsx. Implemented as flyout submenus rather than modals; this pattern was explicitly preserved by TASK-006 ("do not touch Language/Appearance flyout submenus").
 
 Parent:
 TASK-005 (User Profile)
@@ -234,6 +234,10 @@ Docs:
 ---
 
 ## TASK-006
+
+Status:
+DONE — Settings button opens SettingsModal (General + Account panels). Backend: soft deletes on users (deleted_at migration + SoftDeletes trait), POST /auth/logout (JWT blacklist), DELETE /account (soft-delete + JWT invalidate), restore-aware register (409 ACCOUNT_SOFT_DELETED), POST /auth/restore. Frontend: re-signup 409 flow handled in register page.
+
 Task: Claude-style Settings modal + server-side auth with soft-delete & restore-on-resignup — frontend + Laravel backend
 Read first, report before coding. Summarize the current structure before changing anything: frontend/src/components/Sidebar.tsx (avatar menu — the Settings <Link href="/profile"> and client-side handleSignOut), frontend/src/app/profile/page.tsx, frontend/src/app/register/page.tsx (or wherever sign-up lives), frontend/src/lib/api.ts, frontend/src/lib/auth.ts, frontend/src/components/ThemeProvider.tsx; backend routes/api.php, AuthController.php, ProfileController.php, the User model, the users migration, and every migration with a FK to users (documents, chat_sessions, chat_messages, feedbacks, saved_guides, ai_processing_logs, knowledge_chunks). Also API_SPEC.md, DATABASE.md, UI_UX_GUIDELINES.md, AGENT_RULES.md, DECISION.md. Report the FK/cascade situation and whether config/jwt.php has blacklist_enabled before implementing.
 
@@ -282,6 +286,9 @@ State explicitly: was blacklist_enabled already true; the FK cascade strategy us
 
 ## TASK-007
 
+Status:
+DONE — POST /account/password (setPassword) and DELETE /account/google (disconnectGoogle) routes added to api.php under auth:api middleware. api.ts has setPassword and disconnectGoogle methods. formatUser() exposes hasPassword.
+
 Laravel backend endpoints:
 Add the following endpoints. Place the password/Google routes inside the existing Route::middleware('auth:api')->group(...) block in routes/api.php (under the v1 prefix), since they act on the authenticated user. Note the current routes/api.php in the project only shows register, login, profile GET/PUT — but the frontend api.ts already calls /auth/logout, /auth/restore, and DELETE /account. Reconcile this: locate where those existing routes are actually defined and add the new ones consistently; do not duplicate routes.
 1. Set password (for Google-only users) — POST /v1/account/password
@@ -328,6 +335,9 @@ Confirm: types check, lint passes, no console warnings.
 ----
 
 ## TASK-007A
+
+Status:
+DONE — AccountPanel (settings/AccountPanel.tsx) restructured into 3 sections: (1) Account — full name/email read-only, logout, delete with confirmation; (2) Security and login — "Login with password" form shown only when hasPassword === false; (3) Sign-in methods — email/password status + Google connect/disconnect.
 
 The backend endpoints and api.ts changes are done and correct, but you did not make any of the UI changes. The original task was the Account section redesign in SettingsModal.tsx — that's still required and is the main deliverable. Build it now, using the endpoints and types you already added (Profile.hasPassword, api.account.setPassword, api.account.disconnectGoogle, googleOAuthRedirectUrl). Do not touch the backend again.
 Restructure the AccountPanel component in SettingsModal.tsx into three sub-sections, each with its own sub-title heading styled like the existing <h2 className="text-base font-semibold text-heading mb-5"> (use a slightly smaller treatment for sub-titles within the panel so the three read as sections under one panel — match existing tokens, don't introduce new ones):
