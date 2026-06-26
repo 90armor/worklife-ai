@@ -1,4 +1,64 @@
 {
+  "auth": {
+    "errors": {
+      "googleSignInFailed": "Google sign-in was cancelled or failed. Please try again.",
+      "accountPreviouslyDeleted": "This account was previously deleted. Enter your email to restore it or start fresh.",
+      "couldNotCreateAccount": "Could not create account. The email may already be in use.",
+      "incorrectPassword": "Incorrect password. Please try again.",
+      "incorrectPreviousPassword": "Incorrect previous password. Please try again.",
+      "couldNotCreateAccountRetry": "Could not create account. Please try again.",
+      "incorrectEmailOrPassword": "Incorrect email or password. Please try again."
+    },
+    "shared": {
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password"
+    },
+    "callback": {
+      "signingIn": "Signing you in…"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Start understanding your life in Japan.",
+      "fullNameLabel": "Full name",
+      "passwordHint": "Minimum 8 characters",
+      "signUpButton": "Sign up",
+      "alreadyHaveAccount": "Already have an account?",
+      "signInLink": "Sign in",
+      "orContinueWith": "Or continue with",
+      "signUpWithGoogle": "Sign up with Google"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your WorkLife AI account.",
+      "continueWithGoogle": "Continue with Google",
+      "orSignInWithEmail": "or sign in with email",
+      "loginButton": "Log in",
+      "noAccount": "Don't have an account?",
+      "createOneFree": "Create one free"
+    },
+    "softDeleted": {
+      "title": "Account found",
+      "subtitle": "A deleted account exists for <strong>{email}</strong>. Choose how to proceed.",
+      "restoreButton": "Restore my existing account",
+      "startFreshButton": "Start fresh with a new account",
+      "useDifferentEmail": "← Use a different email"
+    },
+    "restore": {
+      "title": "Restore your account",
+      "subtitle": "Enter the password for <strong>{email}</strong> to restore your account and all previous data.",
+      "restoreButton": "Restore account",
+      "backButton": "← Back"
+    },
+    "freshConfirm": {
+      "title": "Start fresh?",
+      "warningHeading": "This will permanently delete all previous data",
+      "warningBody": "All documents, chat history, saved guides, and profile data linked to <strong>{email}</strong> will be erased and cannot be recovered.",
+      "confirmPasswordLabel": "Confirm with your previous password",
+      "deleteButton": "Yes, delete everything and start fresh",
+      "cancelButton": "Cancel"
+    }
+  },
   "settings": {
     "title": "Settings",
     "panels": {

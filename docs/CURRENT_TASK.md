@@ -118,7 +118,7 @@ Title:
 Authentication
 
 Status:
-TODO
+DONE — F001 verified 2026-06-26. Two defects found and fixed: race condition in register() (QueryException on simultaneous identical-email requests now returns 422 instead of 500) and GoogleAuthController soft-delete blind spot (soft-deleted email + Google OAuth now redirects to /register?error=account_deleted instead of 500). JWT blacklist_enabled confirmed true. UX gap closed 2026-06-26: register/page.tsx error useState now handles "account_deleted" param with a clear message prompting restore-or-fresh-start, alongside the existing "google_auth_failed" branch. See commit history.
 
 Requirements:
 
@@ -138,7 +138,7 @@ Title:
 User Profile
 
 Status:
-TODO
+DONE — F002 verified 2026-06-26. All 5 fields (fullName, nationality, preferredLanguage, occupation, prefecture) accepted, mapped, and returned. Patch semantics confirmed. Email not editable. formatUser() complete.
 
 Requirements:
 
@@ -249,7 +249,7 @@ A4. Restore-aware sign-up — the key part. The email column has a database-leve
 - Add a follow-up endpoint to resolve the choice. Two actions, both keyed by email + password:
 
 * Restore existing → POST /auth/restore with { email, password }. Verify the password against the soft-deleted user's password_hash; only on match, restore ($user->restore()) and return a fresh login token (same shape as /auth/login). On mismatch, return 401 and do not reveal whether the email maps to a deleted account beyond the generic invalid-credentials message. (Password is required to restore — signup-form trust is not sufficient.)
-* Start fresh (hard delete + recreate) → when the user explicitly chooses a new account, hard-delete the old soft-deleted user and all their data, then create the new account. This is where dependents matter: report the FK cascade situation first; if FKs cascade on delete, forceDelete() on the user suffices — otherwise delete dependents (documents, chat_sessions → chat_messages → feedbacks, saved_guides, ai_processing_logs, etc.) inside a DB transaction before force-deleting the user, so nothing is orphaned. Then proceed with the normal registration create. Gate this behind the same email+password? No — for "start fresh" the user is creating a brand-new credential, so require confirmation on the frontend (explicit choice) but the old data is purged regardless of the old password. State this clearly in the response/docs so it's not a silent data-loss path.
+* Start fresh (hard delete + recreate) → when the user explicitly chooses a new account, hard-delete the old soft-deleted user and all their data, then create the new account. This is where dependents matter: report the FK cascade situation first; if FKs cascade on delete, forceDelete() on the user suffices — otherwise delete dependents (documents, chat_sessions → chat_messages → feedbacks, saved_guides, ai_processing_logs, etc.) inside a DB transaction before force-deleting the user, so nothing is orphaned. Then proceed with the normal registration create. Gate this behind the same email+password? Yes — require the old password and verify it against the soft-deleted account's password_hash (see DEC-014). Without this check any caller who learns the 409 code can permanently destroy another user's data without credentials. Users who have forgotten their old password cannot start fresh without it (a password-reset flow is out of MVP scope). Require the old password on the backend AND explicit frontend confirmation so it is not a silent data-loss path.
 
 
 - Retention TODO: leave a clearly-marked // TODO: enforce restore retention window (e.g. purge accounts soft-deleted > N days) where the restore lookup happens, plus a note in DECISION.md. Do not implement a scheduled purge yet.
